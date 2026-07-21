@@ -9,17 +9,20 @@ import {
   ArrowRightOnRectangleIcon,
   ChartBarIcon,
   XMarkIcon,
-  Bars3Icon
+  Bars3Icon,
+  DocumentTextIcon,
+  CurrencyDollarIcon,
+  QuestionMarkCircleIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../hooks/useAuth';
+import { ROLES } from '../../config/roles';
 
 export default function Sidebar() {
-  const { logout } = useAuth();
+  const { logout, userRole } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Check if screen is mobile
   useEffect(() => {
     const checkScreen = () => {
       setIsMobile(window.innerWidth < 768);
@@ -35,14 +38,48 @@ export default function Sidebar() {
     return () => window.removeEventListener('resize', checkScreen);
   }, []);
 
-  const menuItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: HomeIcon },
-    { path: '/students', label: 'Students', icon: UserGroupIcon },
-    { path: '/teachers', label: 'Teachers', icon: AcademicCapIcon },
-    { path: '/agents', label: 'Agents', icon: UserPlusIcon },
-    { path: '/analytics', label: 'Analytics', icon: ChartBarIcon },
-    { path: '/settings', label: 'Settings', icon: Cog6ToothIcon },
-  ];
+  // Role Based Menu Items
+  const getMenuItems = () => {
+    const commonItems = [
+      { path: '/dashboard', label: 'Dashboard', icon: HomeIcon },
+    ];
+
+    const superAdminItems = [
+      { path: '/students', label: 'Students', icon: UserGroupIcon },
+      { path: '/teachers', label: 'Teachers', icon: AcademicCapIcon },
+      { path: '/agents', label: 'Agents', icon: UserPlusIcon },
+      // { path: '/questions', label: 'Questions', icon: QuestionMarkCircleIcon },
+      { path: '/earnings', label: 'Earnings', icon: CurrencyDollarIcon },
+      // { path: '/logs', label: 'Activity Logs', icon: DocumentTextIcon },
+      { path: '/settings', label: 'Settings', icon: Cog6ToothIcon },
+    ];
+
+    const adminItems = [
+      { path: '/students', label: 'Students', icon: UserGroupIcon },
+      { path: '/teachers', label: 'Teachers', icon: AcademicCapIcon },
+      { path: '/questions', label: 'Questions', icon: QuestionMarkCircleIcon },
+      { path: '/earnings', label: 'Earnings', icon: CurrencyDollarIcon },
+    ];
+
+    const agentItems = [
+      { path: '/students', label: 'My Students', icon: UserGroupIcon },
+      { path: '/earnings', label: 'Earnings', icon: CurrencyDollarIcon },
+      { path: '/analytics', label: 'Analytics', icon: ChartBarIcon },
+    ];
+
+    switch (userRole) {
+      case ROLES.SUPER_ADMIN:
+        return [...commonItems, ...superAdminItems];
+      case ROLES.ADMIN:
+        return [...commonItems, ...adminItems];
+      case ROLES.AGENT:
+        return [...commonItems, ...agentItems];
+      default:
+        return commonItems;
+    }
+  };
+
+  const menuItems = getMenuItems();
 
   const handleLogout = () => {
     logout();
@@ -60,7 +97,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Hamburger Button - Mobile */}
+      {/* Hamburger Button */}
       {isMobile && (
         <button
           onClick={toggleSidebar}
@@ -70,7 +107,7 @@ export default function Sidebar() {
         </button>
       )}
 
-      {/* Overlay - Mobile */}
+      {/* Overlay */}
       {isMobile && isOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40"
@@ -81,7 +118,7 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 h-full bg-linear-to-r from-blue-800 to-blue-900 text-white z-50
+          fixed top-0 left-0 h-full bg-gradient-to-b from-blue-800 to-blue-900 text-white z-50
           transition-all duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           ${isMobile ? 'w-72' : 'w-64'}
@@ -102,16 +139,27 @@ export default function Sidebar() {
         <div className="flex items-center h-16 px-4 border-b border-blue-700">
           <div className="flex items-center">
             <div className="w-8 h-8 bg-blue-400 rounded-lg flex items-center justify-center font-bold text-white">
-              A
+              {userRole === ROLES.SUPER_ADMIN ? 'SA' : userRole === ROLES.ADMIN ? 'A' : 'AG'}
             </div>
             <span className="ml-3 text-lg font-semibold text-white">
-             CandleLight Admin
+              {userRole === ROLES.SUPER_ADMIN ? 'Super Admin' : 
+               userRole === ROLES.ADMIN ? 'School Admin' : 
+               'Agent Panel'}
             </span>
           </div>
         </div>
 
+        {/* Role Badge */}
+        <div className="px-4 py-2 bg-blue-700/30 mx-3 mt-3 rounded-lg text-center">
+          <span className="text-xs text-blue-200 uppercase tracking-wider">
+            {userRole === ROLES.SUPER_ADMIN ? '🔑 Super Admin' : 
+             userRole === ROLES.ADMIN ? '🏫 School Admin' : 
+             '🤝 Agent'}
+          </span>
+        </div>
+
         {/* Navigation */}
-        <nav className="mt-6 px-3 overflow-y-auto h-[calc(100vh-8rem)]">
+        <nav className="mt-4 px-3 overflow-y-auto h-[calc(100vh-12rem)]">
           {menuItems.map((item) => (
             <NavLink
               key={item.path}
@@ -131,7 +179,7 @@ export default function Sidebar() {
           ))}
         </nav>
 
-        {/* Logout - Fixed at bottom */}
+        {/* Logout */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-blue-700 bg-blue-800/50 backdrop-blur-sm">
           <button
             onClick={handleLogout}
