@@ -9,11 +9,9 @@ import AgentSignup from './pages/AgentSignUp';
 // Dashboard Pages
 import Dashboard from './pages/Dashboard';
 import MainPage from "./pages/student/MainPage"
-// import Teachers from './pages/Teachers';
+import Teachers from './pages/teacher/Teachers';
 import Agents from './pages/Agents';
-// import Questions from './pages/Questions';
-// import Earnings from './pages/Earnings';
-// import Logs from './pages/Logs';
+import Transactions from './pages/Transactions';
 import Settings from './pages/setting';
 
 // Role Based Pages
@@ -61,7 +59,7 @@ function AppRoutes() {
             </ProtectedRoute>
           } 
         />
-        {/* <Route 
+        <Route 
           path="teachers" 
           element={
             <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN]}>
@@ -69,22 +67,15 @@ function AppRoutes() {
             </ProtectedRoute>
           } 
         />
+
         <Route 
-          path="questions" 
+          path="transactions" 
           element={
             <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN]}>
-              <Questions />
+              <Transactions />
             </ProtectedRoute>
           } 
-        /> */}
-        {/* <Route 
-          path="earnings" 
-          element={
-            <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.AGENT]}>
-              <Earnings />
-            </ProtectedRoute>
-          } 
-        /> */}
+        />
         
         {/* Super Admin Only Routes */}
         <Route 

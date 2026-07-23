@@ -49,16 +49,17 @@ export default function Sidebar() {
       { path: '/teachers', label: 'Teachers', icon: AcademicCapIcon },
       { path: '/agents', label: 'Agents', icon: UserPlusIcon },
       // { path: '/questions', label: 'Questions', icon: QuestionMarkCircleIcon },
-      { path: '/earnings', label: 'Earnings', icon: CurrencyDollarIcon },
+      // { path: '/earnings', label: 'Earnings', icon: CurrencyDollarIcon },
       // { path: '/logs', label: 'Activity Logs', icon: DocumentTextIcon },
+         { path: '/transactions', label: 'Transactions', icon: Cog6ToothIcon },
       { path: '/settings', label: 'Settings', icon: Cog6ToothIcon },
     ];
 
     const adminItems = [
       { path: '/students', label: 'Students', icon: UserGroupIcon },
       { path: '/teachers', label: 'Teachers', icon: AcademicCapIcon },
-      { path: '/questions', label: 'Questions', icon: QuestionMarkCircleIcon },
-      { path: '/earnings', label: 'Earnings', icon: CurrencyDollarIcon },
+      // { path: '/questions', label: 'Questions', icon: QuestionMarkCircleIcon },
+      // { path: '/earnings', label: 'Earnings', icon: CurrencyDollarIcon },
     ];
 
     const agentItems = [
