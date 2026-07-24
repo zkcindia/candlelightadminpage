@@ -24,7 +24,7 @@ export default function MainLayout() {
         ${isMobile ? 'ml-0 pt-16' : 'ml-64 pt-16'}
         p-4 md:p-6
       `}>
-        <div className=" w-full mx-auto px-10">
+        <div className=" w-full mx-auto px-2">
           <Outlet />
         </div>
       </main>
