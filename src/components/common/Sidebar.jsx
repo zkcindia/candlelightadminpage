@@ -47,7 +47,7 @@ export default function Sidebar() {
     const superAdminItems = [
       { path: '/students', label: 'Students', icon: UserGroupIcon },
       { path: '/teachers', label: 'Teachers', icon: AcademicCapIcon },
-      { path: '/agents', label: 'Agents', icon: UserPlusIcon },
+      { path: '/agents', label: 'Associate', icon: UserPlusIcon },
       // { path: '/questions', label: 'Questions', icon: QuestionMarkCircleIcon },
       // { path: '/earnings', label: 'Earnings', icon: CurrencyDollarIcon },
       // { path: '/logs', label: 'Activity Logs', icon: DocumentTextIcon },

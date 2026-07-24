@@ -14,15 +14,13 @@ import {
   EyeIcon
 } from '@heroicons/react/24/outline';
 import { 
-  LineChart, 
-  Line, 
+  BarChart, 
+  Bar, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  Area,
-  AreaChart,
   PieChart,
   Pie,
   Cell
@@ -90,7 +88,6 @@ export default function Dashboard() {
           <p className="text-gray-500 text-sm mt-1">Welcome back! Here's your platform overview.</p>
         </div>
         <div className="flex flex-wrap gap-3">
-
           <button className="btn-secondary flex items-center gap-2 text-sm">
             <ChartBarIcon className="w-4 h-4" />
             Reports
@@ -203,7 +200,7 @@ export default function Dashboard() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue Chart */}
+        {/* Revenue Chart - Bar Chart */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-800">Revenue Overview</h3>
@@ -242,13 +239,7 @@ export default function Dashboard() {
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueData}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
+              <BarChart data={revenueData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" stroke="#9ca3af" fontSize={12} />
                 <YAxis stroke="#9ca3af" fontSize={12} />
@@ -259,15 +250,15 @@ export default function Dashboard() {
                     borderRadius: '8px',
                     padding: '8px 12px'
                   }}
+                  formatter={(value) => [`$${value.toLocaleString()}`, 'Revenue']}
                 />
-                <Area 
-                  type="monotone" 
+                <Bar 
                   dataKey="revenue" 
-                  stroke="#3b82f6" 
-                  fill="url(#colorRevenue)"
-                  strokeWidth={2}
+                  fill="#3b82f6"
+                  radius={[4, 4, 0, 0]}
+                   barSize={30}
                 />
-              </AreaChart>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>

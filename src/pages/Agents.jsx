@@ -54,12 +54,12 @@ export default function Agents() {  // ✅ default export
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">🤝 Agents</h1>
-          <p className="text-gray-500 text-sm mt-1">Manage all agents and their referrals</p>
+          <h1 className="text-2xl font-bold text-gray-800">🤝 Associate</h1>
+          <p className="text-gray-500 text-sm mt-1">Manage all associates and their referrals</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
           <UserPlusIcon className="w-5 h-5" />
-          Add Agent
+          Add Associate
         </button>
       </div>
 
