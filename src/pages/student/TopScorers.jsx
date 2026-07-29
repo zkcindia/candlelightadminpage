@@ -73,7 +73,7 @@ export default function TopScorers({ students = [] }) {
   };
 
   const getStatus = (index) => {
-    if (index < 2) return { text: "Playing now", color: "text-green-600" };
+    if (index < 2) return { text: "Online", color: "text-green-600" };
     if (index === 2) return { text: "5 min ago", color: "text-gray-500" };
     return { text: `${index * 3} min ago`, color: "text-gray-400" };
   };
@@ -132,7 +132,7 @@ export default function TopScorers({ students = [] }) {
           🍦 Student Top Scorers
         </motion.h2>
         <p className="text-xs font-semibold text-gray-500">
-          Top Scorers Leaderboard
+          {/* Top Scorers Leaderboard */}
         </p>
       </div>
 

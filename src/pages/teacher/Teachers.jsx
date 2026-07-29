@@ -183,16 +183,7 @@ export default function Teachers() {
           </h1>
           <p className="text-gray-500 text-sm mt-1">Manage all teachers and their performance</p>
         </div>
-        <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-sm hover:shadow-md">
-            <ArrowPathIcon className="w-5 h-5" />
-            Refresh
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm hover:shadow-md">
-            <UserPlusIcon className="w-5 h-5" />
-            Add Teacher
-          </button>
-        </div>
+  
       </div>
 
       {/* Top Teachers Component */}
