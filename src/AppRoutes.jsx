@@ -14,9 +14,9 @@ import Agents from './pages/Agents';
 import Transactions from './pages/Transactions';
 import Settings from './pages/setting';
 
-// Role Based Pages
-// import AdminDashboard from './pages/admin/AdminDashboard';
-// import AgentDashboard from './pages/agent/AgentDashboard';
+// New Import for Approvals & Reminder Days
+import Approvals from './pages/Approvals';
+import MainReminder from './pages/ReminderDays/MainReminder'; // ✅ Correct import
 
 // Import roles
 import { ROLES } from './config/roles';
@@ -39,13 +39,13 @@ function AppRoutes() {
       >
         <Route index element={<Navigate to="/dashboard" />} />
         
-        {/* Dashboard - Role Based */}
+        {/* Dashboard */}
         <Route 
           path="dashboard" 
           element={
             userRole === ROLES.SUPER_ADMIN ? <Dashboard /> :
-            userRole === ROLES.ADMIN ? <AdminDashboard /> :
-            userRole === ROLES.AGENT ? <AgentDashboard /> :
+            userRole === ROLES.ADMIN ? <Dashboard /> :
+            userRole === ROLES.AGENT ? <Dashboard /> :
             <Dashboard />
           } 
         />
@@ -76,6 +76,24 @@ function AppRoutes() {
             </ProtectedRoute>
           } 
         />
+
+        {/* ✅ New Routes - Using MainReminder */}
+        <Route 
+          path="reminder-days" 
+          element={
+            <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN]}>
+              <MainReminder /> {/* ✅ Correct component */}
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="approvals" 
+          element={
+            <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN]}>
+              <Approvals />
+            </ProtectedRoute>
+          } 
+        />
         
         {/* Super Admin Only Routes */}
         <Route 
@@ -94,14 +112,6 @@ function AppRoutes() {
             </ProtectedRoute>
           } 
         />
-        {/* <Route 
-          path="logs" 
-          element={
-            <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
-              <Logs />
-            </ProtectedRoute>
-          } 
-        /> */}
       </Route>
     </Routes>
   );

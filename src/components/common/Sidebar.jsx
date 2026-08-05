@@ -1,5 +1,6 @@
+// src/components/common/Sidebar.jsx
 import React, { useState, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   HomeIcon, 
   UserGroupIcon, 
@@ -12,7 +13,11 @@ import {
   Bars3Icon,
   DocumentTextIcon,
   CurrencyDollarIcon,
-  QuestionMarkCircleIcon
+  QuestionMarkCircleIcon,
+  CalendarDaysIcon,
+  CheckBadgeIcon,
+  BookOpenIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../hooks/useAuth';
 import { ROLES } from '../../config/roles';
@@ -20,13 +25,16 @@ import { ROLES } from '../../config/roles';
 export default function Sidebar() {
   const { logout, userRole } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState({});
 
   useEffect(() => {
     const checkScreen = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth >= 768) {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) {
         setIsOpen(true);
       } else {
         setIsOpen(false);
@@ -38,6 +46,13 @@ export default function Sidebar() {
     return () => window.removeEventListener('resize', checkScreen);
   }, []);
 
+  const toggleSubMenu = (menuKey) => {
+    setExpandedMenus(prev => ({
+      ...prev,
+      [menuKey]: !prev[menuKey]
+    }));
+  };
+
   // Role Based Menu Items
   const getMenuItems = () => {
     const commonItems = [
@@ -45,39 +60,102 @@ export default function Sidebar() {
     ];
 
     const superAdminItems = [
-      { path: '/students', label: 'Students', icon: UserGroupIcon },
-      { path: '/teachers', label: 'Teachers', icon: AcademicCapIcon },
-      { path: '/agents', label: 'Associate', icon: UserPlusIcon },
-      // { path: '/questions', label: 'Questions', icon: QuestionMarkCircleIcon },
-      // { path: '/earnings', label: 'Earnings', icon: CurrencyDollarIcon },
-      // { path: '/logs', label: 'Activity Logs', icon: DocumentTextIcon },
-         { path: '/transactions', label: 'Transactions', icon: Cog6ToothIcon },
-      { path: '/settings', label: 'Settings', icon: Cog6ToothIcon },
+      { 
+        path: '/students', 
+        label: 'Students', 
+        icon: UserGroupIcon 
+      },
+      { 
+        path: '/teachers', 
+        label: 'Teachers', 
+        icon: AcademicCapIcon 
+      },
+      { 
+        path: '/agents', 
+        label: 'Associate', 
+        icon: UserPlusIcon 
+      },
+      { 
+        path: '/transactions', 
+        label: 'Transactions', 
+        icon: DocumentTextIcon 
+      },
+      { 
+        path: '/settings', 
+        label: 'Settings', 
+        icon: Cog6ToothIcon 
+      },
     ];
 
     const adminItems = [
-      { path: '/students', label: 'Students', icon: UserGroupIcon },
-      { path: '/teachers', label: 'Teachers', icon: AcademicCapIcon },
-      // { path: '/questions', label: 'Questions', icon: QuestionMarkCircleIcon },
-      // { path: '/earnings', label: 'Earnings', icon: CurrencyDollarIcon },
+      { 
+        path: '/students', 
+        label: 'Students', 
+        icon: UserGroupIcon 
+      },
+      { 
+        path: '/teachers', 
+        label: 'Teachers', 
+        icon: AcademicCapIcon 
+      },
+      { 
+        path: '/transactions', 
+        label: 'Transactions', 
+        icon: DocumentTextIcon 
+      },
     ];
 
     const agentItems = [
-      { path: '/students', label: 'My Students', icon: UserGroupIcon },
-      { path: '/earnings', label: 'Earnings', icon: CurrencyDollarIcon },
-      { path: '/analytics', label: 'Analytics', icon: ChartBarIcon },
+      { 
+        path: '/students', 
+        label: 'My Students', 
+        icon: UserGroupIcon 
+      },
+      { 
+        path: '/earnings', 
+        label: 'Earnings', 
+        icon: CurrencyDollarIcon 
+      },
+      { 
+        path: '/analytics', 
+        label: 'Analytics', 
+        icon: ChartBarIcon 
+      },
     ];
 
+    // Submenu items with nested structure
+    const subMenuItems = {
+      'management': {
+        label: 'Management',
+        icon: Cog6ToothIcon,
+        items: [
+          { path: '/reminder-days', label: 'Reminder Days', icon: CalendarDaysIcon },
+          { path: '/approvals', label: 'Approvals', icon: CheckBadgeIcon },
+        ]
+      }
+    };
+
+    let baseItems = [];
     switch (userRole) {
       case ROLES.SUPER_ADMIN:
-        return [...commonItems, ...superAdminItems];
+        baseItems = [...commonItems, ...superAdminItems];
+        break;
       case ROLES.ADMIN:
-        return [...commonItems, ...adminItems];
+        baseItems = [...commonItems, ...adminItems];
+        break;
       case ROLES.AGENT:
-        return [...commonItems, ...agentItems];
+        baseItems = [...commonItems, ...agentItems];
+        break;
       default:
-        return commonItems;
+        baseItems = commonItems;
     }
+
+    // Add submenu items if user has appropriate role
+    if ([ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(userRole)) {
+      baseItems.push(subMenuItems.management);
+    }
+
+    return baseItems;
   };
 
   const menuItems = getMenuItems();
@@ -96,6 +174,17 @@ export default function Sidebar() {
     if (isMobile) setIsOpen(false);
   };
 
+  // Check if item is a submenu
+  const isSubMenu = (item) => {
+    return item.items && Array.isArray(item.items);
+  };
+
+  // Check if submenu item is active
+  const isSubItemActive = (item) => {
+    if (!isSubMenu(item)) return false;
+    return item.items.some(subItem => subItem.path === location.pathname);
+  };
+
   return (
     <>
       {/* Hamburger Button */}
@@ -103,6 +192,7 @@ export default function Sidebar() {
         <button
           onClick={toggleSidebar}
           className="fixed top-4 left-4 z-50 p-2 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
+          aria-label="Toggle sidebar"
         >
           <Bars3Icon className="w-6 h-6" />
         </button>
@@ -113,6 +203,7 @@ export default function Sidebar() {
         <div
           className="fixed inset-0 bg-black/50 z-40"
           onClick={closeSidebar}
+          aria-hidden="true"
         />
       )}
 
@@ -125,12 +216,15 @@ export default function Sidebar() {
           ${isMobile ? 'w-72' : 'w-64'}
           shadow-2xl
         `}
+        role="navigation"
+        aria-label="Main navigation"
       >
         {/* Close Button - Mobile */}
         {isMobile && (
           <button
             onClick={closeSidebar}
             className="absolute top-4 right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            aria-label="Close sidebar"
           >
             <XMarkIcon className="w-6 h-6" />
           </button>
@@ -161,23 +255,85 @@ export default function Sidebar() {
 
         {/* Navigation */}
         <nav className="mt-4 px-3 overflow-y-auto h-[calc(100vh-12rem)]">
-          {menuItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              onClick={closeSidebar}
-              className={({ isActive }) =>
-                `flex items-center px-3 py-3 rounded-lg mb-1 transition-all duration-200 ${
-                  isActive 
-                    ? 'bg-blue-700 text-white shadow-lg shadow-blue-900/30' 
-                    : 'text-blue-100 hover:bg-blue-700/50 hover:text-white hover:translate-x-1'
-                }`
-              }
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="ml-3 text-sm">{item.label}</span>
-            </NavLink>
-          ))}
+          {menuItems.map((item) => {
+            if (isSubMenu(item)) {
+              // Submenu with expandable items
+              const isExpanded = expandedMenus[item.label] || isSubItemActive(item);
+              return (
+                <div key={item.label} className="mb-1">
+                  <button
+                    onClick={() => toggleSubMenu(item.label)}
+                    className={`
+                      flex items-center justify-between w-full px-3 py-3 rounded-lg
+                      transition-all duration-200
+                      ${isExpanded ? 'bg-blue-700 text-white shadow-lg shadow-blue-900/30' : 'text-blue-100 hover:bg-blue-700/50 hover:text-white'}
+                    `}
+                    aria-expanded={isExpanded}
+                  >
+                    <div className="flex items-center">
+                      <item.icon className="w-5 h-5" />
+                      <span className="ml-3 text-sm">{item.label}</span>
+                    </div>
+                    <svg
+                      className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {/* Submenu items */}
+                  <div
+                    className={`
+                      overflow-hidden transition-all duration-300 ease-in-out
+                      ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}
+                    `}
+                  >
+                    <div className="ml-4 mt-1 space-y-1 border-l-2 border-blue-600/50 pl-4">
+                      {item.items.map((subItem) => (
+                        <NavLink
+                          key={subItem.path}
+                          to={subItem.path}
+                          onClick={closeSidebar}
+                          className={({ isActive }) =>
+                            `flex items-center px-3 py-2 rounded-lg transition-all duration-200 ${
+                              isActive 
+                                ? 'bg-blue-700/50 text-white' 
+                                : 'text-blue-200 hover:bg-blue-700/30 hover:text-white hover:translate-x-1'
+                            }`
+                          }
+                        >
+                          <subItem.icon className="w-4 h-4" />
+                          <span className="ml-3 text-xs">{subItem.label}</span>
+                        </NavLink>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            } else {
+              // Regular menu item
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={closeSidebar}
+                  className={({ isActive }) =>
+                    `flex items-center px-3 py-3 rounded-lg mb-1 transition-all duration-200 ${
+                      isActive 
+                        ? 'bg-blue-700 text-white shadow-lg shadow-blue-900/30' 
+                        : 'text-blue-100 hover:bg-blue-700/50 hover:text-white hover:translate-x-1'
+                    }`
+                  }
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span className="ml-3 text-sm">{item.label}</span>
+                </NavLink>
+              );
+            }
+          })}
         </nav>
 
         {/* Logout */}
