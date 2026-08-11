@@ -1,14 +1,15 @@
-import React from 'react';
+// src/components/common/Header.jsx
+import React, { useContext } from 'react';
 import { 
   BellIcon, 
   UserCircleIcon,
   MagnifyingGlassIcon,
   Bars3Icon
 } from '@heroicons/react/24/outline';
-import { useAuth } from '../../hooks/useAuth';
+import { AuthContext } from '../../context/AuthContext';
 
 export default function Header({ toggleSidebar }) {
-  const { user } = useAuth();
+  const { user } = useContext(AuthContext);  // ✅ AuthContext se user lo
   const [isMobile, setIsMobile] = React.useState(false);
 
   React.useEffect(() => {
@@ -58,11 +59,11 @@ export default function Header({ toggleSidebar }) {
         
         <div className="flex items-center gap-3 border-l border-gray-200 pl-3 md:pl-4">
           <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-linear-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white font-semibold shadow-md">
-            {user?.name?.charAt(0) || 'A'}
+            {user?.name?.charAt(0) || user?.email?.charAt(0) || 'A'}
           </div>
           <div className="hidden sm:block">
-            <p className="text-sm font-medium text-gray-700">{user?.name || 'Admin'}</p>
-            <p className="text-xs text-gray-500 capitalize">{user?.role || 'Administrator'}</p>
+            <p className="text-sm font-medium text-gray-700">{user?.name || 'User'}</p>
+            <p className="text-xs text-gray-500 capitalize">{user?.role || 'User'}</p>
           </div>
         </div>
       </div>

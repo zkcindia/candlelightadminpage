@@ -11,6 +11,7 @@ import {
   LinkIcon,
   CloudArrowUpIcon
 } from '@heroicons/react/24/outline';
+import { createSentenceOfDay } from '../../service/api'; // ✅ Import API
 
 export default function WordOfTheDay() {
   const [words, setWords] = useState([]);
@@ -21,10 +22,13 @@ export default function WordOfTheDay() {
   const [imageSource, setImageSource] = useState('url');
   const fileInputRef = useRef(null);
   const [imagePreview, setImagePreview] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   
   const [formData, setFormData] = useState({
-    word: '',
-    meaning: '',
+    title: '',        // ✅ Changed from 'word' to 'title' (matching API)
+    description: '',  // ✅ Changed from 'meaning' to 'description'
     example: '',
     image: '',
     imageFile: null,
@@ -39,8 +43,8 @@ export default function WordOfTheDay() {
     const sampleWords = [
       {
         id: 1,
-        word: 'Serendipity',
-        meaning: 'The occurrence and development of events by chance in a happy or beneficial way.',
+        title: 'Serendipity',
+        description: 'The occurrence and development of events by chance in a happy or beneficial way.',
         example: 'A fortunate stroke of serendipity brought the two old friends together after years apart.',
         image: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=400',
         quote: 'Serendipity is the art of making an unsought finding.',
@@ -51,8 +55,8 @@ export default function WordOfTheDay() {
       },
       {
         id: 2,
-        word: 'Resilience',
-        meaning: 'The capacity to recover quickly from difficulties; toughness.',
+        title: 'Resilience',
+        description: 'The capacity to recover quickly from difficulties; toughness.',
         example: 'Her resilience in the face of adversity was truly inspiring.',
         image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400',
         quote: 'Resilience is accepting your new reality, even if it\'s less good than the one you had before.',
@@ -63,8 +67,8 @@ export default function WordOfTheDay() {
       },
       {
         id: 3,
-        word: 'Empathy',
-        meaning: 'The ability to understand and share the feelings of another.',
+        title: 'Empathy',
+        description: 'The ability to understand and share the feelings of another.',
         example: 'Her empathy allowed her to connect deeply with her students.',
         image: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400',
         quote: 'Empathy is about standing in someone else\'s shoes, feeling with their heart.',
@@ -110,8 +114,8 @@ export default function WordOfTheDay() {
   const handleAdd = () => {
     setEditingItem(null);
     setFormData({
-      word: '',
-      meaning: '',
+      title: '',
+      description: '',
       example: '',
       image: '',
       imageFile: null,
@@ -122,17 +126,28 @@ export default function WordOfTheDay() {
     });
     setImagePreview('');
     setImageSource('url');
+    setError(null);
+    setSuccess(null);
     setShowModal(true);
   };
 
   const handleEdit = (item) => {
     setEditingItem(item);
     setFormData({
-      ...item,
-      imageFile: null
+      title: item.title || item.word || '',
+      description: item.description || item.meaning || '',
+      example: item.example || '',
+      image: item.image || '',
+      imageFile: null,
+      quote: item.quote || '',
+      author: item.author || '',
+      date: item.date || '',
+      category: item.category || 'inspirational'
     });
     setImagePreview(item.image || '');
     setImageSource(item.image ? 'url' : 'upload');
+    setError(null);
+    setSuccess(null);
     setShowModal(true);
   };
 
@@ -142,29 +157,82 @@ export default function WordOfTheDay() {
     }
   };
 
-  const handleSave = (e) => {
+  // ✅ CREATE SENTENCE OF THE DAY - API CALL
+  const handleSave = async (e) => {
     e.preventDefault();
-    
-    let imageData = formData.image;
-    if (imageSource === 'upload' && formData.imageFile) {
-      imageData = imagePreview;
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const submitData = new FormData();
+      submitData.append('title', formData.title);
+      submitData.append('description', formData.description);
+      submitData.append('date', formData.date || new Date().toISOString().split('T')[0]);
+      submitData.append('category', formData.category);
+      submitData.append('priority', 'Medium'); // ✅ Default priority
+      
+      if (formData.imageFile) {
+        submitData.append('image', formData.imageFile);
+      } else if (formData.image && imageSource === 'url') {
+        // If it's a URL, we can't send it as file, so send as string
+        // You might want to handle this based on your backend
+        submitData.append('image_url', formData.image);
+      }
+
+      if (formData.author) {
+        submitData.append('author', formData.author);
+      }
+
+      const response = await createSentenceOfDay(submitData);
+      
+      if (response && response.status !== false) {
+        setSuccess(response.message || 'Sentence of the day created successfully! 🎉');
+        
+        const newWord = {
+          id: response.data?.id || Date.now(),
+          title: response.data?.title || formData.title,
+          description: response.data?.description || formData.description,
+          image: response.data?.image || imagePreview || null,
+          author: response.data?.author || formData.author || null,
+          date: response.data?.date || formData.date,
+          category: formData.category,
+          isToday: false
+        };
+        
+        if (editingItem) {
+          setWords(words.map(item => 
+            item.id === editingItem.id ? { ...newWord, id: editingItem.id } : item
+          ));
+        } else {
+          setWords([newWord, ...words]);
+        }
+        
+        setTimeout(() => {
+          setShowModal(false);
+          setSuccess(null);
+          setImagePreview('');
+          setFormData({
+            title: '',
+            description: '',
+            example: '',
+            image: '',
+            imageFile: null,
+            quote: '',
+            author: '',
+            date: '',
+            category: 'inspirational'
+          });
+          setEditingItem(null);
+        }, 1500);
+      } else {
+        throw new Error(response?.message || 'Failed to create sentence of the day');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to create sentence of the day. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    
-    const saveData = {
-      ...formData,
-      image: imageData
-    };
-    
-    if (editingItem) {
-      setWords(words.map(item => 
-        item.id === editingItem.id ? { ...saveData, id: item.id } : item
-      ));
-    } else {
-      setWords([...words, { ...saveData, id: Date.now(), isToday: false }]);
-    }
-    setShowModal(false);
-    setEditingItem(null);
-    setImagePreview('');
   };
 
   const handleSetToday = (id) => {
@@ -189,7 +257,7 @@ export default function WordOfTheDay() {
               <div className="h-64 relative">
                 <img 
                   src={todayWord.image} 
-                  alt={todayWord.word} 
+                  alt={todayWord.title} 
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/80 via-purple-900/60 to-pink-900/80" />
@@ -218,8 +286,8 @@ export default function WordOfTheDay() {
                     </span>
                   </div>
                   
-                  <h2 className="text-4xl font-bold text-white mb-2">{todayWord.word}</h2>
-                  <p className="text-white/90 text-lg mb-2">{todayWord.meaning}</p>
+                  <h2 className="text-4xl font-bold text-white mb-2">{todayWord.title}</h2>
+                  <p className="text-white/90 text-lg mb-2">{todayWord.description}</p>
                   {todayWord.example && (
                     <p className="text-white/80 text-sm italic">📝 "{todayWord.example}"</p>
                   )}
@@ -300,6 +368,20 @@ export default function WordOfTheDay() {
           </div>
         </div>
 
+        {/* Success/Error Messages */}
+        {success && (
+          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+            <span className="text-green-600">✅</span>
+            <p className="text-green-600">{success}</p>
+          </div>
+        )}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+            <span className="text-red-600">❌</span>
+            <p className="text-red-600">{error}</p>
+          </div>
+        )}
+
         {/* Words Grid */}
         {filteredWords.length === 0 && !todayWord ? (
           <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200">
@@ -315,7 +397,7 @@ export default function WordOfTheDay() {
               <div key={word.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1">
                 {word.image ? (
                   <div className="h-40 overflow-hidden">
-                    <img src={word.image} alt={word.word} className="w-full h-full object-cover" />
+                    <img src={word.image} alt={word.title} className="w-full h-full object-cover" />
                   </div>
                 ) : (
                   <div className="h-40 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
@@ -325,8 +407,8 @@ export default function WordOfTheDay() {
                 <div className="p-4">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold text-gray-900">{word.word}</h3>
-                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">{word.meaning}</p>
+                      <h3 className="text-xl font-bold text-gray-900">{word.title}</h3>
+                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">{word.description}</p>
                       {word.example && (
                         <p className="text-xs text-gray-500 mt-2 italic">📝 "{word.example}"</p>
                       )}
@@ -343,6 +425,9 @@ export default function WordOfTheDay() {
                           {word.category}
                         </span>
                         <span className="text-xs text-gray-400">{word.date}</span>
+                        {word.author && (
+                          <span className="text-xs text-gray-400">✍️ {word.author}</span>
+                        )}
                       </div>
                     </div>
                     <div className="flex flex-col gap-1 ml-2">
@@ -375,7 +460,7 @@ export default function WordOfTheDay() {
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-bold text-gray-900">
-                {editingItem ? '✏️ Edit Word' : '✨ Add Word of the Day'}
+                {editingItem ? '✏️ Edit Word' : '✨ Add Sentence of the Day'}
               </h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
                 <XMarkIcon className="w-6 h-6 text-gray-500" />
@@ -384,25 +469,25 @@ export default function WordOfTheDay() {
 
             <form onSubmit={handleSave} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Word *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
                 <input
                   type="text"
-                  value={formData.word}
-                  onChange={e => setFormData({...formData, word: e.target.value})}
+                  value={formData.title}
+                  onChange={e => setFormData({...formData, title: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                  placeholder="Enter word"
+                  placeholder="Enter title"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Meaning *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
                 <textarea
                   rows="2"
-                  value={formData.meaning}
-                  onChange={e => setFormData({...formData, meaning: e.target.value})}
+                  value={formData.description}
+                  onChange={e => setFormData({...formData, description: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                  placeholder="Enter meaning"
+                  placeholder="Enter description"
                   required
                 />
               </div>
@@ -508,16 +593,6 @@ export default function WordOfTheDay() {
                     </div>
                   </div>
                 )}
-
-                {imageSource === 'url' && imagePreview && (
-                  <div className="mt-2">
-                    <img 
-                      src={imagePreview} 
-                      alt="Preview" 
-                      className="max-h-32 rounded-lg object-contain border border-gray-200"
-                    />
-                  </div>
-                )}
               </div>
 
               <div>
@@ -577,9 +652,17 @@ export default function WordOfTheDay() {
                 </button>
                 <button
                   type="submit"
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition"
+                  disabled={loading}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition disabled:opacity-50 flex items-center gap-2"
                 >
-                  {editingItem ? 'Update' : 'Add'}
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    editingItem ? 'Update' : 'Add'
+                  )}
                 </button>
               </div>
             </form>

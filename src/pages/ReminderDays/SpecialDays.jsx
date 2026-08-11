@@ -1,292 +1,369 @@
 // src/pages/ReminderDays/SpecialDays.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   PlusIcon, 
-  PencilIcon, 
-  TrashIcon, 
   XMarkIcon,
-  FireIcon,
-  HeartIcon,
-  StarIcon,
-  CalendarIcon,
   PhotoIcon,
-  LinkIcon,
-  CloudArrowUpIcon
+  CloudArrowUpIcon,
+  CalendarIcon,
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+  TrashIcon,
+  PencilIcon
 } from '@heroicons/react/24/outline';
+import { createSpecialDay } from '../../service/api';
 
 export default function SpecialDays() {
+  // State Management
   const [specialDays, setSpecialDays] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(null);
+  const [error, setError] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
-  const [filter, setFilter] = useState('all');
-  const [viewMode, setViewMode] = useState('grid');
-  const [imageSource, setImageSource] = useState('url'); // 'url' or 'upload'
-  const fileInputRef = useRef(null);
   const [imagePreview, setImagePreview] = useState('');
+  const fileInputRef = useRef(null);
   
+  // Form Data
   const [formData, setFormData] = useState({
     title: '',
+    description: '',
     date: '',
-    image: '',
-    imageFile: null,
-    wishes: '',
-    category: 'festival',
-    priority: 'medium'
+    category: 'National',
+    priority: 'Medium',
+    image: null
   });
 
-  // Load sample data
-  useEffect(() => {
-    const sampleData = [
-      {
-        id: 1,
-        title: '🇮🇳 Independence Day',
-        date: '2026-08-15',
-        image: 'https://images.unsplash.com/photo-1532375810709-75b1da00537c?w=400',
-        wishes: 'Freedom is our birthright! Jai Hind! 🇮🇳',
-        category: 'festival',
-        priority: 'high'
-      },
-      {
-        id: 2,
-        title: '🎂 Rahul\'s Birthday',
-        date: '2026-08-25',
-        image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400',
-        wishes: 'Happy Birthday Rahul! May your day be filled with joy! 🎂',
-        category: 'birthday',
-        priority: 'high'
-      },
-      {
-        id: 3,
-        title: '🪔 Diwali Festival',
-        date: '2026-11-12',
-        image: 'https://images.unsplash.com/photo-1577083552431-6e5fd01988ec?w=400',
-        wishes: 'May the light of Diwali fill your life with joy! 🪔',
-        category: 'festival',
-        priority: 'medium'
-      }
-    ];
-    setSpecialDays(sampleData);
-  }, []);
+  // Sample Data for Demo
+  const sampleDays = [
+    {
+      id: 1,
+      title: 'Independence Day',
+      description: 'Happy Independence Day',
+      date: '2026-08-15',
+      category: 'National',
+      priority: 'High',
+      image: 'https://images.unsplash.com/photo-1532375810709-75b1da00537c?w=400'
+    },
+    {
+      id: 2,
+      title: 'Diwali Festival',
+      description: 'Festival of Lights',
+      date: '2026-11-12',
+      category: 'Festival',
+      priority: 'Medium',
+      image: 'https://images.unsplash.com/photo-1577083552431-6e5fd01988ec?w=400'
+    }
+  ];
 
-  // Helper functions
-  const getDaysRemaining = (date) => {
-    const days = Math.ceil((new Date(date) - new Date()) / (1000 * 60 * 60 * 24));
-    if (days === 0) return '🎉 Today!';
-    if (days === 1) return '✨ Tomorrow!';
-    if (days < 0) return '📅 Past Event';
-    return `${days} days`;
-  };
-
+  // Helper Functions
   const getCategoryColor = (category) => {
     const colors = {
-      festival: 'bg-red-100 text-red-800',
-      birthday: 'bg-pink-100 text-pink-800',
-      event: 'bg-purple-100 text-purple-800',
-      holiday: 'bg-green-100 text-green-800'
+      National: 'bg-red-100 text-red-800',
+      Festival: 'bg-orange-100 text-orange-800',
+      Birthday: 'bg-pink-100 text-pink-800',
+      Event: 'bg-purple-100 text-purple-800',
+      Holiday: 'bg-green-100 text-green-800',
+      Personal: 'bg-blue-100 text-blue-800',
+      Work: 'bg-indigo-100 text-indigo-800'
     };
     return colors[category] || 'bg-gray-100 text-gray-800';
   };
 
-  const getCategoryIcon = (category) => {
-    const icons = {
-      festival: <FireIcon className="w-3 h-3" />,
-      birthday: <HeartIcon className="w-3 h-3" />,
-      event: <StarIcon className="w-3 h-3" />,
-      holiday: <CalendarIcon className="w-3 h-3" />
-    };
-    return icons[category] || <CalendarIcon className="w-3 h-3" />;
-  };
-
   const getPriorityColor = (priority) => {
     const colors = {
-      high: 'bg-red-100 text-red-700',
-      medium: 'bg-yellow-100 text-yellow-700',
-      low: 'bg-green-100 text-green-700'
+      High: 'bg-red-100 text-red-700',
+      Medium: 'bg-yellow-100 text-yellow-700',
+      Low: 'bg-green-100 text-green-700'
     };
     return colors[priority] || 'bg-gray-100 text-gray-700';
   };
 
-  // Handle file upload
+  const getPriorityEmoji = (priority) => {
+    const emojis = {
+      High: '🔴',
+      Medium: '🟡',
+      Low: '🟢'
+    };
+    return emojis[priority] || '⚪';
+  };
+
+  const getCategoryEmoji = (category) => {
+    const emojis = {
+      National: '🇮🇳',
+      Festival: '🎊',
+      Birthday: '🎂',
+      Event: '📅',
+      Holiday: '🌴',
+      Personal: '❤️',
+      Work: '💼'
+    };
+    return emojis[category] || '📌';
+  };
+
+  const getDaysRemaining = (date) => {
+    if (!date) return '📅 No date';
+    const today = new Date();
+    const targetDate = new Date(date);
+    const diffTime = targetDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return '🎉 Today!';
+    if (diffDays === 1) return '✨ Tomorrow!';
+    if (diffDays < 0) return '📅 Past Event';
+    return `${diffDays} days left`;
+  };
+
+  // Form Handlers
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
-        setFormData({...formData, image: reader.result, imageFile: file});
+        setFormData({...formData, image: file});
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // CRUD operations
   const handleAdd = () => {
     setEditingItem(null);
     setFormData({
       title: '',
+      description: '',
       date: '',
-      image: '',
-      imageFile: null,
-      wishes: '',
-      category: 'festival',
-      priority: 'medium'
+      category: 'National',
+      priority: 'Medium',
+      image: null
     });
     setImagePreview('');
-    setImageSource('url');
+    setSuccess(null);
+    setError(null);
     setShowModal(true);
   };
 
   const handleEdit = (item) => {
     setEditingItem(item);
     setFormData({
-      ...item,
-      imageFile: null
+      title: item.title,
+      description: item.description,
+      date: item.date,
+      category: item.category,
+      priority: item.priority,
+      image: null
     });
     setImagePreview(item.image || '');
-    setImageSource(item.image ? 'url' : 'upload');
+    setSuccess(null);
+    setError(null);
     setShowModal(true);
   };
 
   const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this?')) {
-      setSpecialDays(specialDays.filter(item => item.id !== id));
+    if (window.confirm('Are you sure you want to delete this special day?')) {
+      setSpecialDays(specialDays.filter(day => day.id !== id));
     }
   };
 
-  const handleSave = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    let imageData = formData.image;
-    
-    // Agar image upload hai toh use karo
-    if (imageSource === 'upload' && formData.imageFile) {
-      imageData = imagePreview;
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const submitData = new FormData();
+      submitData.append('title', formData.title);
+      submitData.append('description', formData.description);
+      submitData.append('date', formData.date);
+      submitData.append('category', formData.category);
+      submitData.append('priority', formData.priority);
+      if (formData.image) {
+        submitData.append('image', formData.image);
+      }
+
+      const response = await createSpecialDay(submitData);
+      
+      if (response.status) {
+        setSuccess(response.message || 'Special day created successfully! 🎉');
+        
+        const newDay = {
+          id: response.data?.id || Date.now(),
+          title: response.data?.title || formData.title,
+          description: response.data?.description || formData.description,
+          date: response.data?.date || formData.date,
+          category: formData.category,
+          priority: formData.priority,
+          image: imagePreview || null
+        };
+        
+        if (editingItem) {
+          setSpecialDays(specialDays.map(item => 
+            item.id === editingItem.id ? { ...newDay, id: editingItem.id } : item
+          ));
+        } else {
+          setSpecialDays([newDay, ...specialDays]);
+        }
+        
+        setTimeout(() => {
+          setShowModal(false);
+          setSuccess(null);
+          setImagePreview('');
+          setFormData({
+            title: '',
+            description: '',
+            date: '',
+            category: 'National',
+            priority: 'Medium',
+            image: null
+          });
+          setEditingItem(null);
+        }, 1500);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to create special day. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    
-    const saveData = {
-      ...formData,
-      image: imageData
-    };
-    
-    if (editingItem) {
-      setSpecialDays(specialDays.map(item => 
-        item.id === editingItem.id ? { ...saveData, id: item.id } : item
-      ));
-    } else {
-      setSpecialDays([...specialDays, { ...saveData, id: Date.now() }]);
-    }
-    setShowModal(false);
-    setEditingItem(null);
-    setImagePreview('');
   };
 
-  const filteredDays = specialDays.filter(item => {
-    if (filter === 'all') return true;
-    return item.category === filter;
-  });
-
-  const categories = ['all', 'festival', 'birthday', 'event', 'holiday'];
+  const displayDays = specialDays.length > 0 ? specialDays : sampleDays;
 
   return (
-    <div>
-      {/* Filters & View Toggle */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <div className="flex flex-wrap gap-2 bg-white rounded-lg shadow-sm p-1 border border-gray-200">
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setFilter(cat)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
-                filter === cat ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {cat === 'all' ? 'All' : cat}
-            </button>
-          ))}
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">✨ Special Days</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage your important dates and celebrations</p>
         </div>
-        
-        <div className="flex gap-2">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`p-2 rounded-lg transition-colors ${
-              viewMode === 'grid' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`p-2 rounded-lg transition-colors ${
-              viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <button
-            onClick={handleAdd}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
-          >
-            <PlusIcon className="w-5 h-5" />
-            Add
-          </button>
+        <button
+          onClick={handleAdd}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 transition shadow-sm hover:shadow"
+        >
+          <PlusIcon className="w-5 h-5" />
+          Add Special Day
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <p className="text-sm text-gray-500">Total Days</p>
+          <p className="text-2xl font-bold text-gray-900">{displayDays.length}</p>
+        </div>
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <p className="text-sm text-gray-500">Upcoming</p>
+          <p className="text-2xl font-bold text-green-600">
+            {displayDays.filter(day => new Date(day.date) >= new Date()).length}
+          </p>
+        </div>
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <p className="text-sm text-gray-500">High Priority</p>
+          <p className="text-2xl font-bold text-red-600">
+            {displayDays.filter(day => day.priority === 'High').length}
+          </p>
+        </div>
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <p className="text-sm text-gray-500">Categories</p>
+          <p className="text-2xl font-bold text-purple-600">
+            {new Set(displayDays.map(day => day.category)).size}
+          </p>
         </div>
       </div>
 
+      {/* Success/Error Messages */}
+      {success && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+          <CheckCircleIcon className="w-5 h-5 text-green-600 flex-shrink-0" />
+          <p className="text-green-600">{success}</p>
+        </div>
+      )}
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+          <ExclamationCircleIcon className="w-5 h-5 text-red-600 flex-shrink-0" />
+          <p className="text-red-600">{error}</p>
+        </div>
+      )}
+
       {/* Cards Grid */}
-      {filteredDays.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200">
+      {displayDays.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
           <CalendarIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500">No special days added yet</p>
-          <button onClick={handleAdd} className="mt-2 text-blue-600 hover:text-blue-700">
-            Add your first special day
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Special Days Added</h3>
+          <p className="text-gray-500 mb-4">Start adding your important dates and celebrations</p>
+          <button
+            onClick={handleAdd}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition"
+          >
+            <PlusIcon className="w-5 h-5" />
+            Add Your First Special Day
           </button>
         </div>
       ) : (
-        <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'} gap-6`}>
-          {filteredDays.map(day => (
-            <div key={day.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1">
-              <div className="relative h-48 overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {displayDays.map((day) => (
+            <div 
+              key={day.id} 
+              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1"
+            >
+              {/* Image */}
+              <div className="relative h-48 overflow-hidden bg-gray-100">
                 {day.image ? (
-                  <img src={day.image} alt={day.title} className="w-full h-full object-cover" />
+                  <img 
+                    src={day.image} 
+                    alt={day.title} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '';
+                    }}
+                  />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
+                  <div className="w-full h-full flex items-center justify-center">
                     <PhotoIcon className="w-12 h-12 text-gray-400" />
                   </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                <div className="absolute bottom-3 left-3 right-3 flex justify-between">
-                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(day.category)}`}>
-                    {getCategoryIcon(day.category)} {day.category}
+                <div className="absolute bottom-3 left-3 right-3 flex justify-between items-center">
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getCategoryColor(day.category)} flex items-center gap-1`}>
+                    {getCategoryEmoji(day.category)} {day.category}
                   </span>
-                  <span className="text-white text-xs bg-black/30 px-2 py-1 rounded-full">
+                  <span className="bg-black/50 text-white text-xs px-2.5 py-1 rounded-full backdrop-blur-sm">
                     {getDaysRemaining(day.date)}
                   </span>
                 </div>
               </div>
-              
+
+              {/* Content */}
               <div className="p-4">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{day.title}</h3>
-                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{day.wishes}</p>
+                <div className="flex justify-between items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 truncate">{day.title}</h3>
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{day.description}</p>
                   </div>
-                  <div className="flex gap-1 ml-2">
-                    <button onClick={() => handleEdit(day)} className="p-1 text-blue-600 hover:bg-blue-50 rounded">
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => handleEdit(day)}
+                      className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                      title="Edit"
+                    >
                       <PencilIcon className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleDelete(day.id)} className="p-1 text-red-600 hover:bg-red-50 rounded">
+                    <button
+                      onClick={() => handleDelete(day.id)}
+                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
+                      title="Delete"
+                    >
                       <TrashIcon className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-                <div className="mt-3 flex justify-between text-xs border-t border-gray-100 pt-3">
+
+                <div className="mt-3 flex justify-between items-center text-xs border-t border-gray-100 pt-3">
                   <span className="text-gray-500">📅 {day.date}</span>
-                  <span className={`px-2 py-0.5 rounded-full ${getPriorityColor(day.priority)}`}>
-                    {day.priority}
+                  <span className={`px-2.5 py-0.5 rounded-full font-medium ${getPriorityColor(day.priority)}`}>
+                    {getPriorityEmoji(day.priority)} {day.priority}
                   </span>
                 </div>
               </div>
@@ -295,201 +372,181 @@ export default function SpecialDays() {
         </div>
       )}
 
-      {/* Modal with Image Upload + URL Option */}
+      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            {/* Modal Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-bold text-gray-900">
                 {editingItem ? '✏️ Edit Special Day' : '✨ Add Special Day'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button
+                onClick={() => setShowModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                disabled={loading}
+              >
                 <XMarkIcon className="w-6 h-6 text-gray-500" />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="p-6 space-y-4">
+            {/* Modal Body */}
+            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+              {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Title <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={formData.title}
-                  onChange={e => setFormData({...formData, title: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                   placeholder="Enter title"
                   required
+                  disabled={loading}
                 />
               </div>
-              
+
+              {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Description
+                </label>
+                <textarea
+                  rows="3"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  placeholder="Enter description or wishes"
+                  disabled={loading}
+                />
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Date <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="date"
                   value={formData.date}
-                  onChange={e => setFormData({...formData, date: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                   required
+                  disabled={loading}
                 />
               </div>
 
-              {/* Image Upload Section */}
+              {/* Image Upload */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Image</label>
-                
-                {/* Toggle between URL and Upload */}
-                <div className="flex gap-2 mb-3">
-                  <button
-                    type="button"
-                    onClick={() => setImageSource('url')}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                      imageSource === 'url' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    <LinkIcon className="w-4 h-4" />
-                    URL
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setImageSource('upload')}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                      imageSource === 'upload' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    <CloudArrowUpIcon className="w-4 h-4" />
-                    Upload
-                  </button>
-                </div>
-
-                {/* URL Input */}
-                {imageSource === 'url' && (
-                  <div>
-                    <input
-                      type="url"
-                      value={formData.image || ''}
-                      onChange={e => {
-                        setFormData({...formData, image: e.target.value, imageFile: null});
-                        setImagePreview(e.target.value);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="https://example.com/image.jpg"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Paste image URL</p>
-                  </div>
-                )}
-
-                {/* File Upload */}
-                {imageSource === 'upload' && (
-                  <div>
-                    <div 
-                      className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition cursor-pointer"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept="image/*"
-                        className="hidden"
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Image
+                </label>
+                <div
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition cursor-pointer"
+                  onClick={() => !loading && fileInputRef.current?.click()}
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="hidden"
+                    disabled={loading}
+                  />
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="max-h-48 mx-auto rounded-lg object-contain"
                       />
-                      {imagePreview ? (
-                        <div className="relative">
-                          <img 
-                            src={imagePreview} 
-                            alt="Preview" 
-                            className="max-h-48 mx-auto rounded-lg object-contain"
-                          />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setImagePreview('');
-                              setFormData({...formData, image: '', imageFile: null});
-                              if (fileInputRef.current) fileInputRef.current.value = '';
-                            }}
-                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
-                          >
-                            <XMarkIcon className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div>
-                          <PhotoIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                          <p className="text-gray-600">Click to upload image</p>
-                          <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG up to 5MB</p>
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setImagePreview('');
+                          setFormData({ ...formData, image: null });
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition"
+                        disabled={loading}
+                      >
+                        <XMarkIcon className="w-4 h-4" />
+                      </button>
                     </div>
-                  </div>
-                )}
-
-                {/* Preview for URL */}
-                {imageSource === 'url' && imagePreview && (
-                  <div className="mt-2">
-                    <img 
-                      src={imagePreview} 
-                      alt="Preview" 
-                      className="max-h-32 rounded-lg object-contain border border-gray-200"
-                    />
-                  </div>
-                )}
+                  ) : (
+                    <div>
+                      <CloudArrowUpIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-600">Click to upload image</p>
+                      <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG up to 5MB</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Wishes/Message</label>
-                <textarea
-                  rows="3"
-                  value={formData.wishes}
-                  onChange={e => setFormData({...formData, wishes: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Write special wishes..."
-                />
-              </div>
-
+              {/* Category & Priority */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Category
+                  </label>
                   <select
                     value={formData.category}
-                    onChange={e => setFormData({...formData, category: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    disabled={loading}
                   >
-                    <option value="festival">🎊 Festival</option>
-                    <option value="birthday">🎂 Birthday</option>
-                    <option value="event">📅 Event</option>
-                    <option value="holiday">🌴 Holiday</option>
+                    <option value="National">🇮🇳 National</option>
+                    <option value="Festival">🎊 Festival</option>
+                    <option value="Birthday">🎂 Birthday</option>
+                    <option value="Event">📅 Event</option>
+                    <option value="Holiday">🌴 Holiday</option>
+                    <option value="Personal">❤️ Personal</option>
+                    <option value="Work">💼 Work</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Priority
+                  </label>
                   <select
                     value={formData.priority}
-                    onChange={e => setFormData({...formData, priority: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    disabled={loading}
                   >
-                    <option value="high">🔴 High</option>
-                    <option value="medium">🟡 Medium</option>
-                    <option value="low">🟢 Low</option>
+                    <option value="High">🔴 High</option>
+                    <option value="Medium">🟡 Medium</option>
+                    <option value="Low">🟢 Low</option>
                   </select>
                 </div>
               </div>
 
+              {/* Actions */}
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                  className="px-6 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                  disabled={loading}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition"
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading}
                 >
-                  {editingItem ? 'Update' : 'Add'}
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      {editingItem ? 'Updating...' : 'Creating...'}
+                    </>
+                  ) : (
+                    editingItem ? 'Update Special Day' : 'Create Special Day'
+                  )}
                 </button>
               </div>
             </form>

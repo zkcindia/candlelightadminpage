@@ -1,83 +1,81 @@
+// src/context/AuthContext.jsx
 import React, { createContext, useState, useEffect } from 'react';
-import api from '../api/api';
+import { loginUser } from '../service/api';
 import toast from 'react-hot-toast';
 
 export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [userRole, setUserRole] = useState('super_admin');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // ✅ Mock user data with role
-    const mockUser = {
-      id: 1,
-      name: 'Super Admin',
-      email: 'admin@candlelight.com',
-      role: 'super_admin', // super_admin, admin, agent
-      district: null, // Only for agents
-      school: null, // Only for agents
-      avatar: null,
-    };
-    setUser(mockUser);
-    setUserRole(mockUser.role);
-    setIsAuthenticated(true);
+    const token = localStorage.getItem('accessToken');
+    const userData = localStorage.getItem('userData');
+    
+    if (token && userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        const role = parsedUser.role ? parsedUser.role.toLowerCase() : 'user';
+        setUserRole(role);
+        setIsAuthenticated(true);
+        console.log('✅ User restored:', parsedUser.name, 'Role:', role);
+      } catch (error) {
+        console.error('Error restoring user:', error);
+        localStorage.clear();
+      }
+    }
+    setLoading(false);
   }, []);
 
   const login = async (credentials) => {
-    // ✅ Mock login with role
-    const mockUsers = {
-      'admin@candlelight.com': {
-        id: 1,
-        name: 'Super Admin',
-        email: 'admin@candlelight.com',
-        role: 'super_admin',
-        district: null,
-      },
-      'admin@school.com': {
-        id: 2,
-        name: 'School Admin',
-        email: 'admin@school.com',
-        role: 'admin',
-        district: 'Mumbai',
-        school: 'St. Mary\'s School',
-      },
-      'agent@candlelight.com': {
-        id: 3,
-        name: 'Agent Suresh',
-        email: 'agent@candlelight.com',
-        role: 'agent',
-        district: 'Mumbai',
-        school: null,
-      },
-    };
-
-    const user = mockUsers[credentials.email];
-    if (user) {
-      setUser(user);
-      setUserRole(user.role);
+    try {
+      const response = await loginUser(credentials.email, credentials.password);
+      
+      localStorage.setItem('accessToken', response.access_token);
+      localStorage.setItem('refreshToken', response.refresh_token);
+      
+      const userData = response.user_data || response.teacher_data || {};
+      localStorage.setItem('userData', JSON.stringify(userData));
+      localStorage.setItem('userId', userData.id);
+      
+      const role = userData.role ? userData.role.toLowerCase() : 'user';
+      localStorage.setItem('role', role);
+      
+      setUser(userData);
+      setUserRole(role);
       setIsAuthenticated(true);
-      localStorage.setItem('authToken', 'mock-token');
-      localStorage.setItem('userData', JSON.stringify(user));
-      toast.success(`Welcome ${user.name}!`);
-      return true;
-    } else {
-      toast.error('Invalid credentials');
-      return false;
+      
+      console.log('✅ Login successful:', userData.name, 'Role:', role);
+      toast.success(`Welcome ${userData.name || 'User'}!`);
+      return { success: true };
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error(error.message || 'Login failed');
+      return { success: false, error: error.message };
     }
   };
 
-  const logout = async () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userData');
+  const logout = () => {
+    localStorage.clear();
     setUser(null);
+    setUserRole(null);
     setIsAuthenticated(false);
     toast.success('Logged out successfully');
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, userRole, login, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated, 
+      userRole, 
+      loading,
+      login, 
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   );

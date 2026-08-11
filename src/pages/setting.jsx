@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// src/pages/setting/index.jsx
+import React, { useState, useEffect, useContext } from 'react';
 import { 
   Cog6ToothIcon,
   UserIcon,
@@ -14,13 +15,11 @@ import {
   XMarkIcon,
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
-import { useAuth } from '../hooks/useAuth';
-import { ROLES } from '../config/roles';
-import api from '../api/api';
+import { AuthContext } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function Settings() {
-  const { user, userRole } = useAuth();
+  const { user, userRole } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -30,7 +29,7 @@ export default function Settings() {
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    phone: user?.phone || '+91 98765 43210',
+    phone: user?.mobile || '+91 98765 43210',
     role: userRole,
     bio: user?.bio || 'Platform administrator',
   });
@@ -93,17 +92,18 @@ export default function Settings() {
 
   // Fetch Company Settings (Super Admin Only)
   useEffect(() => {
-    if (userRole === ROLES.SUPER_ADMIN) {
+    if (userRole === 'super_admin') {
       fetchCompanySettings();
     }
   }, [userRole]);
 
   const fetchCompanySettings = async () => {
     try {
-      const response = await api.get('/settings/company');
-      if (response.data) {
-        setCompanyData(response.data);
-      }
+      // const response = await api.get('/settings/company');
+      // if (response.data) {
+      //   setCompanyData(response.data);
+      // }
+      console.log('Fetch company settings');
     } catch (error) {
       console.error('Error fetching company settings:', error);
     }
@@ -118,7 +118,7 @@ export default function Settings() {
   const handleProfileSave = async () => {
     setSaving(true);
     try {
-      await api.put('/user/profile', profileData);
+      // await api.put('/user/profile', profileData);
       toast.success('Profile updated successfully!');
       setIsEditing(false);
     } catch (error) {
@@ -144,10 +144,10 @@ export default function Settings() {
     }
     setSaving(true);
     try {
-      await api.post('/auth/change-password', {
-        current_password: securityData.current_password,
-        new_password: securityData.new_password,
-      });
+      // await api.post('/auth/change-password', {
+      //   current_password: securityData.current_password,
+      //   new_password: securityData.new_password,
+      // });
       toast.success('Password updated successfully!');
       setSecurityData({
         current_password: '',
@@ -171,7 +171,7 @@ export default function Settings() {
   const handleNotificationSave = async () => {
     setSaving(true);
     try {
-      await api.put('/user/notifications', notificationData);
+      // await api.put('/user/notifications', notificationData);
       toast.success('Notification settings updated!');
     } catch (error) {
       toast.error('Failed to update notifications');
@@ -189,7 +189,7 @@ export default function Settings() {
   const handleGeneralSave = async () => {
     setSaving(true);
     try {
-      await api.put('/user/settings', generalData);
+      // await api.put('/user/settings', generalData);
       toast.success('General settings updated!');
     } catch (error) {
       toast.error('Failed to update general settings');
@@ -217,9 +217,9 @@ export default function Settings() {
           formData.append(key, companyData[key]);
         }
       });
-      await api.post('/settings/company', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      // await api.post('/settings/company', formData, {
+      //   headers: { 'Content-Type': 'multipart/form-data' }
+      // });
       toast.success('Company settings saved successfully!');
     } catch (error) {
       toast.error('Failed to save company settings');
@@ -237,12 +237,12 @@ export default function Settings() {
     ];
 
     // General Tab - Agents ko nahi dikhega
-    if (userRole !== ROLES.AGENT) {
+    if (userRole !== 'agent') {
       baseTabs.push({ id: 'general', label: 'General', icon: GlobeAltIcon });
     }
 
     // Company Tab - Sirf Super Admin ko dikhega
-    if (userRole === ROLES.SUPER_ADMIN) {
+    if (userRole === 'super_admin') {
       baseTabs.push({ id: 'company', label: 'Company', icon: BuildingOfficeIcon });
     }
 

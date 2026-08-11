@@ -1,33 +1,38 @@
-import React from 'react';
+// src/AppRoutes.jsx
+import React, { useContext } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth';
+import { AuthContext } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/common/MainLayout';
-import Login from './components/auth/Login';
-import AgentSignup from './pages/AgentSignUp';
-
-// Dashboard Pages
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import MainPage from "./pages/student/MainPage"
+
+// ✅ Import all pages
+import MainPage from "./pages/student/MainPage";
 import Teachers from './pages/teacher/Teachers';
 import Agents from './pages/Agents';
 import Transactions from './pages/Transactions';
 import Settings from './pages/setting';
-
-// New Import for Approvals & Reminder Days
 import Approvals from './pages/Approvals';
-import MainReminder from './pages/ReminderDays/MainReminder'; // ✅ Correct import
-
-// Import roles
-import { ROLES } from './config/roles';
+import MainReminder from './pages/ReminderDays/MainReminder';
 
 function AppRoutes() {
-  const { isAuthenticated, userRole } = useAuth();
+  const { isAuthenticated, userRole, loading } = useContext(AuthContext);
+
+  console.log('🔍 AppRoutes - isAuthenticated:', isAuthenticated);
+  console.log('🔍 AppRoutes - userRole:', userRole);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/agent-signup" element={<AgentSignup />} />
       
       <Route
         path="/"
@@ -39,22 +44,14 @@ function AppRoutes() {
       >
         <Route index element={<Navigate to="/dashboard" />} />
         
-        {/* Dashboard */}
-        <Route 
-          path="dashboard" 
-          element={
-            userRole === ROLES.SUPER_ADMIN ? <Dashboard /> :
-            userRole === ROLES.ADMIN ? <Dashboard /> :
-            userRole === ROLES.AGENT ? <Dashboard /> :
-            <Dashboard />
-          } 
-        />
+        {/* Dashboard - All roles can access */}
+        <Route path="dashboard" element={<Dashboard />} />
         
-        {/* Super Admin & Admin Routes */}
+        {/* Admin Routes */}
         <Route 
           path="students" 
           element={
-            <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN]}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
               <MainPage />
             </ProtectedRoute>
           } 
@@ -62,34 +59,31 @@ function AppRoutes() {
         <Route 
           path="teachers" 
           element={
-            <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN]}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
               <Teachers />
             </ProtectedRoute>
           } 
         />
-
         <Route 
           path="transactions" 
           element={
-            <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN]}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
               <Transactions />
             </ProtectedRoute>
           } 
         />
-
-        {/* ✅ New Routes - Using MainReminder */}
         <Route 
           path="reminder-days" 
           element={
-            <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN]}>
-              <MainReminder /> {/* ✅ Correct component */}
+            <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+              <MainReminder />
             </ProtectedRoute>
           } 
         />
         <Route 
           path="approvals" 
           element={
-            <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN]}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
               <Approvals />
             </ProtectedRoute>
           } 
@@ -99,7 +93,7 @@ function AppRoutes() {
         <Route 
           path="agents" 
           element={
-            <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+            <ProtectedRoute allowedRoles={['super_admin']}>
               <Agents />
             </ProtectedRoute>
           } 
@@ -107,7 +101,7 @@ function AppRoutes() {
         <Route 
           path="settings" 
           element={
-            <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+            <ProtectedRoute allowedRoles={['super_admin']}>
               <Settings />
             </ProtectedRoute>
           } 

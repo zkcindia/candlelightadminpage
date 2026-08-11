@@ -1,5 +1,5 @@
 // src/components/common/Sidebar.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   HomeIcon, 
@@ -13,17 +13,13 @@ import {
   Bars3Icon,
   DocumentTextIcon,
   CurrencyDollarIcon,
-  QuestionMarkCircleIcon,
   CalendarDaysIcon,
-  CheckBadgeIcon,
-  BookOpenIcon,
-  SparklesIcon
+  CheckBadgeIcon
 } from '@heroicons/react/24/outline';
-import { useAuth } from '../../hooks/useAuth';
-import { ROLES } from '../../config/roles';
+import { AuthContext } from '../../context/AuthContext';
 
 export default function Sidebar() {
-  const { logout, userRole } = useAuth();
+  const { logout, userRole } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
@@ -53,77 +49,24 @@ export default function Sidebar() {
     }));
   };
 
-  // Role Based Menu Items
   const getMenuItems = () => {
     const commonItems = [
       { path: '/dashboard', label: 'Dashboard', icon: HomeIcon },
     ];
 
-    const superAdminItems = [
-      { 
-        path: '/students', 
-        label: 'Students', 
-        icon: UserGroupIcon 
-      },
-      { 
-        path: '/teachers', 
-        label: 'Teachers', 
-        icon: AcademicCapIcon 
-      },
-      { 
-        path: '/agents', 
-        label: 'Associate', 
-        icon: UserPlusIcon 
-      },
-      { 
-        path: '/transactions', 
-        label: 'Transactions', 
-        icon: DocumentTextIcon 
-      },
-      { 
-        path: '/settings', 
-        label: 'Settings', 
-        icon: Cog6ToothIcon 
-      },
-    ];
-
     const adminItems = [
-      { 
-        path: '/students', 
-        label: 'Students', 
-        icon: UserGroupIcon 
-      },
-      { 
-        path: '/teachers', 
-        label: 'Teachers', 
-        icon: AcademicCapIcon 
-      },
-      { 
-        path: '/transactions', 
-        label: 'Transactions', 
-        icon: DocumentTextIcon 
-      },
+      { path: '/students', label: 'Students', icon: UserGroupIcon },
+      { path: '/teachers', label: 'Teachers', icon: AcademicCapIcon },
+      { path: '/agents', label: 'Associate', icon: UserPlusIcon },
+      { path: '/transactions', label: 'Transactions', icon: DocumentTextIcon },
     ];
 
     const agentItems = [
-      { 
-        path: '/students', 
-        label: 'My Students', 
-        icon: UserGroupIcon 
-      },
-      { 
-        path: '/earnings', 
-        label: 'Earnings', 
-        icon: CurrencyDollarIcon 
-      },
-      { 
-        path: '/analytics', 
-        label: 'Analytics', 
-        icon: ChartBarIcon 
-      },
+      { path: '/students', label: 'My Students', icon: UserGroupIcon },
+      { path: '/earnings', label: 'Earnings', icon: CurrencyDollarIcon },
+      { path: '/analytics', label: 'Analytics', icon: ChartBarIcon },
     ];
 
-    // Submenu items with nested structure
     const subMenuItems = {
       'management': {
         label: 'Management',
@@ -131,28 +74,21 @@ export default function Sidebar() {
         items: [
           { path: '/reminder-days', label: 'Reminder Days', icon: CalendarDaysIcon },
           { path: '/approvals', label: 'Approvals', icon: CheckBadgeIcon },
+          { path: '/settings', label: 'Settings', icon: Cog6ToothIcon },
         ]
       }
     };
 
-    let baseItems = [];
-    switch (userRole) {
-      case ROLES.SUPER_ADMIN:
-        baseItems = [...commonItems, ...superAdminItems];
-        break;
-      case ROLES.ADMIN:
-        baseItems = [...commonItems, ...adminItems];
-        break;
-      case ROLES.AGENT:
-        baseItems = [...commonItems, ...agentItems];
-        break;
-      default:
-        baseItems = commonItems;
-    }
+    let baseItems = [...commonItems];
 
-    // Add submenu items if user has appropriate role
-    if ([ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(userRole)) {
+    // ✅ Admin ya Super Admin = Full Access
+    if (userRole === 'admin' || userRole === 'super_admin') {
+      baseItems = [...baseItems, ...adminItems];
       baseItems.push(subMenuItems.management);
+    } 
+    // Agent = Limited Access
+    else if (userRole === 'agent') {
+      baseItems = [...baseItems, ...agentItems];
     }
 
     return baseItems;
@@ -174,12 +110,10 @@ export default function Sidebar() {
     if (isMobile) setIsOpen(false);
   };
 
-  // Check if item is a submenu
   const isSubMenu = (item) => {
     return item.items && Array.isArray(item.items);
   };
 
-  // Check if submenu item is active
   const isSubItemActive = (item) => {
     if (!isSubMenu(item)) return false;
     return item.items.some(subItem => subItem.path === location.pathname);
@@ -187,27 +121,19 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Hamburger Button */}
       {isMobile && (
         <button
           onClick={toggleSidebar}
           className="fixed top-4 left-4 z-50 p-2 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
-          aria-label="Toggle sidebar"
         >
           <Bars3Icon className="w-6 h-6" />
         </button>
       )}
 
-      {/* Overlay */}
       {isMobile && isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40"
-          onClick={closeSidebar}
-          aria-hidden="true"
-        />
+        <div className="fixed inset-0 bg-black/50 z-40" onClick={closeSidebar} />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`
           fixed top-0 left-0 h-full bg-gradient-to-b from-blue-800 to-blue-900 text-white z-50
@@ -216,15 +142,11 @@ export default function Sidebar() {
           ${isMobile ? 'w-72' : 'w-64'}
           shadow-2xl
         `}
-        role="navigation"
-        aria-label="Main navigation"
       >
-        {/* Close Button - Mobile */}
         {isMobile && (
           <button
             onClick={closeSidebar}
-            className="absolute top-4 right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-            aria-label="Close sidebar"
+            className="absolute top-4 right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg"
           >
             <XMarkIcon className="w-6 h-6" />
           </button>
@@ -234,11 +156,11 @@ export default function Sidebar() {
         <div className="flex items-center h-16 px-4 border-b border-blue-700">
           <div className="flex items-center">
             <div className="w-8 h-8 bg-blue-400 rounded-lg flex items-center justify-center font-bold text-white">
-              {userRole === ROLES.SUPER_ADMIN ? 'SA' : userRole === ROLES.ADMIN ? 'A' : 'AG'}
+              {userRole === 'super_admin' ? 'SA' : userRole === 'admin' ? 'A' : 'AG'}
             </div>
             <span className="ml-3 text-lg font-semibold text-white">
-              {userRole === ROLES.SUPER_ADMIN ? 'Super Admin' : 
-               userRole === ROLES.ADMIN ? 'School Admin' : 
+              {userRole === 'super_admin' ? 'Super Admin' : 
+               userRole === 'admin' ? 'School Admin' : 
                'Agent Panel'}
             </span>
           </div>
@@ -247,8 +169,8 @@ export default function Sidebar() {
         {/* Role Badge */}
         <div className="px-4 py-2 bg-blue-700/30 mx-3 mt-3 rounded-lg text-center">
           <span className="text-xs text-blue-200 uppercase tracking-wider">
-            {userRole === ROLES.SUPER_ADMIN ? '🔑 Super Admin' : 
-             userRole === ROLES.ADMIN ? '🏫 School Admin' : 
+            {userRole === 'super_admin' ? '🔑 Super Admin' : 
+             userRole === 'admin' ? '🏫 School Admin' : 
              '🤝 Agent'}
           </span>
         </div>
@@ -257,7 +179,6 @@ export default function Sidebar() {
         <nav className="mt-4 px-3 overflow-y-auto h-[calc(100vh-12rem)]">
           {menuItems.map((item) => {
             if (isSubMenu(item)) {
-              // Submenu with expandable items
               const isExpanded = expandedMenus[item.label] || isSubItemActive(item);
               return (
                 <div key={item.label} className="mb-1">
@@ -268,29 +189,17 @@ export default function Sidebar() {
                       transition-all duration-200
                       ${isExpanded ? 'bg-blue-700 text-white shadow-lg shadow-blue-900/30' : 'text-blue-100 hover:bg-blue-700/50 hover:text-white'}
                     `}
-                    aria-expanded={isExpanded}
                   >
                     <div className="flex items-center">
                       <item.icon className="w-5 h-5" />
                       <span className="ml-3 text-sm">{item.label}</span>
                     </div>
-                    <svg
-                      className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
+                    <svg className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
                   
-                  {/* Submenu items */}
-                  <div
-                    className={`
-                      overflow-hidden transition-all duration-300 ease-in-out
-                      ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}
-                    `}
-                  >
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
                     <div className="ml-4 mt-1 space-y-1 border-l-2 border-blue-600/50 pl-4">
                       {item.items.map((subItem) => (
                         <NavLink
@@ -314,7 +223,6 @@ export default function Sidebar() {
                 </div>
               );
             } else {
-              // Regular menu item
               return (
                 <NavLink
                   key={item.path}
