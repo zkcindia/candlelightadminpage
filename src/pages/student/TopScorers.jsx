@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+// src/components/TopScorers.jsx
+import React, { useMemo, useState, useEffect } from "react";
 import {
   TrophyIcon,
   ClockIcon,
@@ -17,9 +18,75 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import { getTopStudents } from "../../service/api";
 
-export default function TopScorers({ students = [] }) {
+export default function TopScorers() {
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("month");
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch top students from API
+  useEffect(() => {
+    fetchTopStudents();
+  }, []);
+
+  const fetchTopStudents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await getTopStudents();
+      
+      if (response.status && response.data) {
+        // Transform API data to match component format
+        const formattedData = response.data.map((item, index) => ({
+          id: item.student_id || item.id || index,
+          name: item.student_name || item.name || 'Unknown',
+          score: item.score || 0,
+          subject: item.subject || 'Not specified',
+          email: item.email || '',
+          date: item.date || '',
+          rank: item.rank || index + 1,
+          class: item.class || '10th',
+          image: item.image || null
+        }));
+        setStudents(formattedData);
+      } else {
+        setStudents([]);
+      }
+    } catch (err) {
+      console.error('Error fetching top students:', err);
+      setError(err.message || 'Failed to load top students');
+      // Fallback to sample data
+      setStudents(getSampleData());
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchTopStudents();
+  };
+
+  // Sample data for fallback
+  const getSampleData = () => {
+    return [
+      { id: 1, name: 'Biswajit Pattanayak', score: 95, subject: 'HISTORY', class: '12th', rank: 1 },
+      { id: 2, name: 'Rahul Sharma', score: 88, subject: 'MATHEMATICS', class: '12th', rank: 2 },
+      { id: 3, name: 'Priya Patel', score: 82, subject: 'SCIENCE', class: '11th', rank: 3 },
+      { id: 4, name: 'Amit Kumar', score: 78, subject: 'ENGLISH', class: '12th', rank: 4 },
+      { id: 5, name: 'Sneha Reddy', score: 75, subject: 'HISTORY', class: '10th', rank: 5 },
+      { id: 6, name: 'Vikram Singh', score: 72, subject: 'MATHEMATICS', class: '11th', rank: 6 },
+      { id: 7, name: 'Neha Gupta', score: 68, subject: 'SCIENCE', class: '12th', rank: 7 },
+      { id: 8, name: 'Deepak Joshi', score: 65, subject: 'ENGLISH', class: '10th', rank: 8 },
+      { id: 9, name: 'Kavya Nair', score: 62, subject: 'HISTORY', class: '11th', rank: 9 },
+      { id: 10, name: 'Arjun Mehta', score: 58, subject: 'MATHEMATICS', class: '12th', rank: 10 },
+    ];
+  };
 
   const topScorers = useMemo(() => {
     return [...students]
@@ -27,7 +94,7 @@ export default function TopScorers({ students = [] }) {
       .slice(0, 10);
   }, [students]);
 
-  // Monthly Data
+  // Monthly Data (can be from API or static)
   const monthlyData = [
     { month: "Jan", score: 65 },
     { month: "Feb", score: 72 },
@@ -47,10 +114,7 @@ export default function TopScorers({ students = [] }) {
     { month: "2024", score: 98 },
   ];
 
-  // Selected Data based on tab
   const chartData = activeTab === "month" ? monthlyData : yearlyData;
-
-  // Colors for bars
   const barColors = ["#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe", "#dbeafe"];
 
   const containerVariants = {
@@ -107,6 +171,18 @@ export default function TopScorers({ students = [] }) {
     };
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex min-h-[300px] items-center justify-center rounded-2xl bg-white p-6 border-2 border-gray-200 shadow-sm">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm font-semibold text-gray-700">Loading top students...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!topScorers.length) {
     return (
       <div className="flex min-h-[200px] items-center justify-center rounded-2xl bg-white p-6 border-2 border-gray-200 shadow-sm">
@@ -129,11 +205,11 @@ export default function TopScorers({ students = [] }) {
           transition={{ duration: 3, repeat: Infinity }}
           className="text-2xl font-black text-blue-600"
         >
-          🍦 Student Top Scorers
+          🏆 Student Top Scorers
         </motion.h2>
-        <p className="text-xs font-semibold text-gray-500">
-          {/* Top Scorers Leaderboard */}
-        </p>
+        {error && (
+          <p className="text-xs text-red-500 mt-1">{error}</p>
+        )}
       </div>
 
       {/* Main Grid - 60% List + 40% Chart */}
@@ -150,14 +226,16 @@ export default function TopScorers({ students = [] }) {
             <div className="mb-2 flex items-center justify-between rounded-xl bg-blue-50/50 px-2.5 py-1.5">
               <div className="flex items-center gap-1.5 text-[10px] font-bold text-blue-800">
                 <ClockIcon className="h-3.5 w-3.5" />
-                Top 10 Scorers
+                Top {topScorers.length} Scorers
               </div>
               <motion.button
                 whileHover={{ rotate: 180, scale: 1.05 }}
                 whileTap={{ scale: 0.9 }}
-                className="rounded-full bg-white/70 p-1.5 text-blue-600 shadow-sm hover:bg-white"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="rounded-full bg-white/70 p-1.5 text-blue-600 shadow-sm hover:bg-white disabled:opacity-50"
               >
-                <ArrowPathIcon className="h-3.5 w-3.5" />
+                <ArrowPathIcon className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
               </motion.button>
             </div>
 
@@ -229,7 +307,7 @@ export default function TopScorers({ students = [] }) {
                         )}
                       </div>
 
-                      {/* Name */}
+                      {/* Name & Details */}
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-bold text-gray-800">
                           {student.name}
@@ -239,7 +317,10 @@ export default function TopScorers({ students = [] }) {
                             {status.text}
                           </span>
                           <span className="text-[9px] font-medium text-gray-400">
-                            {student.class}
+                            {student.class || '10th'}
+                          </span>
+                          <span className="text-[8px] font-medium text-blue-500 bg-blue-100 px-1.5 py-0.5 rounded">
+                            {student.subject}
                           </span>
                         </div>
                       </div>
@@ -327,16 +408,20 @@ export default function TopScorers({ students = [] }) {
             {/* Stats - Chart ke Upar */}
             <div className="grid grid-cols-3 gap-2 mb-4">
               <div className="bg-blue-50 rounded-xl px-3 py-2.5 text-center border border-blue-100">
-                <p className="text-lg font-bold text-blue-600">92</p>
+                <p className="text-lg font-bold text-blue-600">
+                  {topScorers.length > 0 ? Math.round(topScorers.reduce((acc, s) => acc + s.score, 0) / topScorers.length) : 0}
+                </p>
                 <p className="text-[8px] text-gray-400 font-medium">Avg Score</p>
               </div>
               <div className="bg-green-50 rounded-xl px-3 py-2.5 text-center border border-green-100">
-                <p className="text-lg font-bold text-green-600">↑18%</p>
-                <p className="text-[8px] text-gray-400 font-medium">Growth</p>
+                <p className="text-lg font-bold text-green-600">
+                  {topScorers.length > 0 ? topScorers[0]?.score || 0 : 0}
+                </p>
+                <p className="text-[8px] text-gray-400 font-medium">Top Score</p>
               </div>
               <div className="bg-purple-50 rounded-xl px-3 py-2.5 text-center border border-purple-100">
-                <p className="text-lg font-bold text-purple-600">10</p>
-                <p className="text-[8px] text-gray-400 font-medium">Top</p>
+                <p className="text-lg font-bold text-purple-600">{topScorers.length}</p>
+                <p className="text-[8px] text-gray-400 font-medium">Students</p>
               </div>
             </div>
 

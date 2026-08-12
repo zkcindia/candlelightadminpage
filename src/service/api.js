@@ -62,3 +62,24 @@ export const createSentenceOfDay = async (formData) => {
     throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to create sentence of day');
   }
 };
+
+// Get top students
+export const getTopStudents = async () => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.get(
+      `${API_URL}/top-students/`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error:', error);
+    throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch top students');
+  }
+};
