@@ -155,7 +155,7 @@ export const deleteStudent = async (studentId) => {
 
 // ===== TEACHER APPROVALS API =====
 
-// Get all teachers (admin endpoint)
+// GET all teachers
 export const getAdminTeachers = async () => {
   try {
     const token = localStorage.getItem('accessToken');
@@ -169,10 +169,55 @@ export const getAdminTeachers = async () => {
       }
     );
     
+    // Return the data array from the response
     return response.data;
   } catch (error) {
     console.error('API Error:', error);
     throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch teachers');
+  }
+};
+
+
+export const updateTeacher = async (teacherId, formData) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.put(
+      `${API_URL}/admin-teacher/${teacherId}/edit/`,
+      formData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error:', error);
+    throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to update teacher');
+  }
+};
+
+// DELETE teacher by ID
+export const deleteTeacher = async (teacherId) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.delete(
+      `${API_URL}/admin-teacher/${teacherId}/delete/`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error:', error);
+    throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to delete teacher');
   }
 };
 
