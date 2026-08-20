@@ -16,6 +16,11 @@ import Settings from './pages/setting';
 import Approvals from './pages/Approvals';
 import MainReminder from './pages/ReminderDays/MainReminder';
 
+// ✅ Import Class Management Pages (3 Separate Pages)
+import Boards from './pages/classmanagment/Boards';
+import Classes from './pages/classmanagment/Classes';
+import Subjects from './pages/classmanagment/Subjects';
+
 function AppRoutes() {
   const { isAuthenticated, userRole, loading } = useContext(AuthContext);
 
@@ -47,7 +52,7 @@ function AppRoutes() {
         {/* Dashboard - All roles can access */}
         <Route path="dashboard" element={<Dashboard />} />
         
-        {/* Admin Routes */}
+        {/* Admin & Super Admin Routes */}
         <Route 
           path="students" 
           element={
@@ -85,6 +90,32 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
               <Approvals />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* ✅ New Routes - 3 Separate Pages for Hierarchy */}
+        <Route 
+          path="boards" 
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+              <Boards />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="classes" 
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+              <Classes />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="subjects" 
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+              <Subjects />
             </ProtectedRoute>
           } 
         />

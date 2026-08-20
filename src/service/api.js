@@ -272,3 +272,116 @@ export const rejectTeacher = async (teacherId) => {
     throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to reject teacher');
   }
 };
+
+
+// =============================================
+// ===== BOARD MANAGEMENT APIs =====
+// =============================================
+
+/**
+ * Get all education boards
+ * GET /education-boards/
+ */
+export const getBoards = async () => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.get(
+      `${API_URL}/education-boards/`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Get Boards:', error);
+    throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch boards');
+  }
+};
+
+/**
+ * Add a new education board
+ * POST /add-education-board/
+ * @param {string} boardName - Name of the board
+ */
+export const addBoard = async (boardName) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.post(
+      `${API_URL}/add-education-board/`,
+      {
+        board_name: boardName,
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Add Board:', error);
+    throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to add board');
+  }
+};
+
+/**
+ * Edit an education board
+ * PUT /edit-education-board/{id}/
+ * @param {number} id - Board ID
+ * @param {string} boardName - New board name
+ */
+export const editBoard = async (id, boardName) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.put(
+      `${API_URL}/edit-education-board/${id}/`,
+      {
+        board_name: boardName,
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Edit Board:', error);
+    throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to edit board');
+  }
+};
+
+/**
+ * Delete an education board
+ * DELETE /delete-education-board/{id}/
+ * @param {number} id - Board ID
+ */
+export const deleteBoard = async (id) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.delete(
+      `${API_URL}/delete-education-board/${id}/`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Delete Board:', error);
+    throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to delete board');
+  }
+};
