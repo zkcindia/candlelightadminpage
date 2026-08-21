@@ -302,11 +302,7 @@ export const getBoards = async () => {
   }
 };
 
-/**
- * Add a new education board
- * POST /add-education-board/
- * @param {string} boardName - Name of the board
- */
+
 export const addBoard = async (boardName) => {
   try {
     const token = localStorage.getItem('accessToken');
@@ -331,12 +327,7 @@ export const addBoard = async (boardName) => {
   }
 };
 
-/**
- * Edit an education board
- * PUT /edit-education-board/{id}/
- * @param {number} id - Board ID
- * @param {string} boardName - New board name
- */
+
 export const editBoard = async (id, boardName) => {
   try {
     const token = localStorage.getItem('accessToken');
@@ -361,11 +352,7 @@ export const editBoard = async (id, boardName) => {
   }
 };
 
-/**
- * Delete an education board
- * DELETE /delete-education-board/{id}/
- * @param {number} id - Board ID
- */
+
 export const deleteBoard = async (id) => {
   try {
     const token = localStorage.getItem('accessToken');
@@ -383,5 +370,255 @@ export const deleteBoard = async (id) => {
   } catch (error) {
     console.error('API Error - Delete Board:', error);
     throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to delete board');
+  }
+};
+
+// src/service/api.js - Fix the addClass function
+
+// =============================================
+// ===== CLASS MANAGEMENT APIs =====
+// =============================================
+
+/**
+ * Get all classes for a specific board
+ * GET /get-all-classes/?board_id={boardId}
+ * @param {number} boardId - Board ID
+ */
+export const getClasses = async (boardId) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.get(
+      `${API_URL}/get-all-classes/?board_id=${boardId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Get Classes:', error);
+    throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch classes');
+  }
+};
+
+/**
+ * Add a new class to a board (with image upload)
+ * POST /add-class/
+ * @param {FormData} formData - Form data with board_id, name, image
+ */
+export const addClass = async (formData) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    // ✅ IMPORTANT: Don't set Content-Type header for FormData
+    // Browser will set it automatically with boundary
+    const response = await axios.post(
+      `${API_URL}/add-class/`,
+      formData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // ❌ DO NOT set 'Content-Type': 'multipart/form-data' manually
+          // ✅ Let browser set it automatically
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Add Class:', error);
+    const errorMsg = error.response?.data?.message || 
+                     error.response?.data?.error || 
+                     'Failed to add class';
+    throw new Error(errorMsg);
+  }
+};
+
+// src/service/api.js - Edit Class function
+
+/**
+ * Edit a class
+ * PUT /edit-class/{id}/
+ * @param {number} id - Class ID
+ * @param {Object} data - { name: string }
+ */
+export const editClass = async (id, data) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    // ✅ API expects: { name: "new name" }
+    const response = await axios.put(
+      `${API_URL}/edit-class/${id}/`,
+      data,  // { name: "new dj" }
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Edit Class:', error);
+    const errorMsg = error.response?.data?.message || 
+                     error.response?.data?.error || 
+                     'Failed to edit class';
+    throw new Error(errorMsg);
+  }
+};
+/**
+ * Delete a class
+ * DELETE /delete-class/{id}/
+ * @param {number} id - Class ID
+ */
+export const deleteClass = async (id) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.delete(
+      `${API_URL}/delete-class/${id}/`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Delete Class:', error);
+    const errorMsg = error.response?.data?.message || 
+                     error.response?.data?.error || 
+                     'Failed to delete class';
+    throw new Error(errorMsg);
+  }
+};
+
+
+// src/service/api.js - Add these functions at the end
+
+// =============================================
+// ===== SUBJECT MANAGEMENT APIs =====
+// =============================================
+
+/**
+ * Get all subjects (with optional class filter)
+ * GET /get-all-subjects/?class_id={classId}
+ * @param {number} classId - Optional class ID to filter
+ */
+export const getSubjects = async (classId = null) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const url = classId 
+      ? `${API_URL}/get-all-subjects/?class_id=${classId}`
+      : `${API_URL}/get-all-subjects/`;
+    
+    const response = await axios.get(
+      url,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Get Subjects:', error);
+    throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch subjects');
+  }
+};
+
+/**
+ * Add a new subject
+ * POST /add-subject/
+ * @param {FormData} formData - Form data with name, class_id, image
+ */
+export const addSubject = async (formData) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.post(
+      `${API_URL}/add-subject/`,
+      formData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // ❌ DO NOT set Content-Type manually for FormData
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Add Subject:', error);
+    const errorMsg = error.response?.data?.message || 
+                     error.response?.data?.error || 
+                     'Failed to add subject';
+    throw new Error(errorMsg);
+  }
+};
+
+/**
+ * Edit a subject
+ * PUT /edit-subject/{id}/
+ * @param {number} id - Subject ID
+ * @param {Object} data - { name: string }
+ */
+export const editSubject = async (id, data) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.put(
+      `${API_URL}/edit-subject/${id}/`,
+      data,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Edit Subject:', error);
+    const errorMsg = error.response?.data?.message || 
+                     error.response?.data?.error || 
+                     'Failed to edit subject';
+    throw new Error(errorMsg);
+  }
+};
+
+/**
+ * Delete a subject
+ * DELETE /delete-subject/{id}/
+ * @param {number} id - Subject ID
+ */
+export const deleteSubject = async (id) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.delete(
+      `${API_URL}/delete-subject/${id}/`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Delete Subject:', error);
+    const errorMsg = error.response?.data?.message || 
+                     error.response?.data?.error || 
+                     'Failed to delete subject';
+    throw new Error(errorMsg);
   }
 };
