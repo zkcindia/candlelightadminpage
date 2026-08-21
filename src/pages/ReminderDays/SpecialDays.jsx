@@ -7,35 +7,13 @@ import {
   CloudArrowUpIcon,
   CalendarIcon,
   CheckCircleIcon,
-  ExclamationCircleIcon,
-  TrashIcon,
-  PencilIcon
+  ExclamationCircleIcon
 } from '@heroicons/react/24/outline';
 import { createSpecialDay } from '../../service/api';
 
 export default function SpecialDays() {
   // State Management
-  const [specialDays, setSpecialDays] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(null);
-  const [error, setError] = useState(null);
-  const [editingItem, setEditingItem] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
-  const fileInputRef = useRef(null);
-  
-  // Form Data
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    date: '',
-    category: 'National',
-    priority: 'Medium',
-    image: null
-  });
-
-  // Sample Data for Demo
-  const sampleDays = [
+  const [specialDays, setSpecialDays] = useState([
     {
       id: 1,
       title: 'Independence Day',
@@ -54,7 +32,24 @@ export default function SpecialDays() {
       priority: 'Medium',
       image: 'https://images.unsplash.com/photo-1577083552431-6e5fd01988ec?w=400'
     }
-  ];
+  ]);
+  
+  const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(null);
+  const [error, setError] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const fileInputRef = useRef(null);
+  
+  // Form Data
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    date: '',
+    category: 'National',
+    priority: 'Medium',
+    image: null
+  });
 
   // Helper Functions
   const getCategoryColor = (category) => {
@@ -128,7 +123,6 @@ export default function SpecialDays() {
   };
 
   const handleAdd = () => {
-    setEditingItem(null);
     setFormData({
       title: '',
       description: '',
@@ -141,28 +135,6 @@ export default function SpecialDays() {
     setSuccess(null);
     setError(null);
     setShowModal(true);
-  };
-
-  const handleEdit = (item) => {
-    setEditingItem(item);
-    setFormData({
-      title: item.title,
-      description: item.description,
-      date: item.date,
-      category: item.category,
-      priority: item.priority,
-      image: null
-    });
-    setImagePreview(item.image || '');
-    setSuccess(null);
-    setError(null);
-    setShowModal(true);
-  };
-
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this special day?')) {
-      setSpecialDays(specialDays.filter(day => day.id !== id));
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -187,6 +159,7 @@ export default function SpecialDays() {
       if (response.status) {
         setSuccess(response.message || 'Special day created successfully! 🎉');
         
+        // Add new day to list
         const newDay = {
           id: response.data?.id || Date.now(),
           title: response.data?.title || formData.title,
@@ -194,17 +167,12 @@ export default function SpecialDays() {
           date: response.data?.date || formData.date,
           category: formData.category,
           priority: formData.priority,
-          image: imagePreview || null
+          image: response.data?.image || imagePreview || null
         };
         
-        if (editingItem) {
-          setSpecialDays(specialDays.map(item => 
-            item.id === editingItem.id ? { ...newDay, id: editingItem.id } : item
-          ));
-        } else {
-          setSpecialDays([newDay, ...specialDays]);
-        }
+        setSpecialDays([newDay, ...specialDays]);
         
+        // Close modal after success
         setTimeout(() => {
           setShowModal(false);
           setSuccess(null);
@@ -217,7 +185,10 @@ export default function SpecialDays() {
             priority: 'Medium',
             image: null
           });
-          setEditingItem(null);
+          // Reset file input
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
         }, 1500);
       }
     } catch (err) {
@@ -226,8 +197,6 @@ export default function SpecialDays() {
       setLoading(false);
     }
   };
-
-  const displayDays = specialDays.length > 0 ? specialDays : sampleDays;
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -250,24 +219,24 @@ export default function SpecialDays() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-lg p-4 border border-gray-200">
           <p className="text-sm text-gray-500">Total Days</p>
-          <p className="text-2xl font-bold text-gray-900">{displayDays.length}</p>
+          <p className="text-2xl font-bold text-gray-900">{specialDays.length}</p>
         </div>
         <div className="bg-white rounded-lg p-4 border border-gray-200">
           <p className="text-sm text-gray-500">Upcoming</p>
           <p className="text-2xl font-bold text-green-600">
-            {displayDays.filter(day => new Date(day.date) >= new Date()).length}
+            {specialDays.filter(day => new Date(day.date) >= new Date()).length}
           </p>
         </div>
         <div className="bg-white rounded-lg p-4 border border-gray-200">
           <p className="text-sm text-gray-500">High Priority</p>
           <p className="text-2xl font-bold text-red-600">
-            {displayDays.filter(day => day.priority === 'High').length}
+            {specialDays.filter(day => day.priority === 'High').length}
           </p>
         </div>
         <div className="bg-white rounded-lg p-4 border border-gray-200">
           <p className="text-sm text-gray-500">Categories</p>
           <p className="text-2xl font-bold text-purple-600">
-            {new Set(displayDays.map(day => day.category)).size}
+            {new Set(specialDays.map(day => day.category)).size}
           </p>
         </div>
       </div>
@@ -287,7 +256,7 @@ export default function SpecialDays() {
       )}
 
       {/* Cards Grid */}
-      {displayDays.length === 0 ? (
+      {specialDays.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
           <CalendarIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No Special Days Added</h3>
@@ -302,7 +271,7 @@ export default function SpecialDays() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayDays.map((day) => (
+          {specialDays.map((day) => (
             <div 
               key={day.id} 
               className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1"
@@ -342,22 +311,6 @@ export default function SpecialDays() {
                     <h3 className="font-semibold text-gray-900 truncate">{day.title}</h3>
                     <p className="text-sm text-gray-600 mt-1 line-clamp-2">{day.description}</p>
                   </div>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <button
-                      onClick={() => handleEdit(day)}
-                      className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                      title="Edit"
-                    >
-                      <PencilIcon className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(day.id)}
-                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
-                      title="Delete"
-                    >
-                      <TrashIcon className="w-4 h-4" />
-                    </button>
-                  </div>
                 </div>
 
                 <div className="mt-3 flex justify-between items-center text-xs border-t border-gray-100 pt-3">
@@ -378,11 +331,13 @@ export default function SpecialDays() {
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             {/* Modal Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">
-                {editingItem ? '✏️ Edit Special Day' : '✨ Add Special Day'}
-              </h2>
+              <h2 className="text-xl font-bold text-gray-900">✨ Add Special Day</h2>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setShowModal(false);
+                  setError(null);
+                  setSuccess(null);
+                }}
                 className="p-2 hover:bg-gray-100 rounded-lg transition"
                 disabled={loading}
               >
@@ -528,7 +483,11 @@ export default function SpecialDays() {
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    setError(null);
+                    setSuccess(null);
+                  }}
                   className="px-6 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition"
                   disabled={loading}
                 >
@@ -542,10 +501,10 @@ export default function SpecialDays() {
                   {loading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      {editingItem ? 'Updating...' : 'Creating...'}
+                      Creating...
                     </>
                   ) : (
-                    editingItem ? 'Update Special Day' : 'Create Special Day'
+                    'Create Special Day'
                   )}
                 </button>
               </div>

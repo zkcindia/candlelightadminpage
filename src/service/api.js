@@ -16,27 +16,29 @@ export const loginUser = async (email, password) => {
   }
 };
 
-// ===== SPECIAL DAYS API =====
+// Create a special day - Simple and clean
 export const createSpecialDay = async (formData) => {
   try {
-    const token = localStorage.getItem('accessToken');
+    const response = await fetch(`${API_URL}/create-special-day/`, {
+      method: 'POST',
+      body: formData,
+    });
     
-    const response = await axios.post(
-      `${API_URL}/create-special-day/`,
-      formData,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
+    const data = await response.json();
     
-    return response.data;
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to create special day');
+    }
+    
+    return data;
   } catch (error) {
-    console.error('API Error:', error);
-    throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to create special day');
+    console.error('Error creating special day:', error);
+    throw error;
   }
+};
+
+export default {
+  createSpecialDay
 };
 
 
