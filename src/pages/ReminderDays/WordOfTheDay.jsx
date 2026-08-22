@@ -1,5 +1,5 @@
 // src/pages/ReminderDays/WordOfTheDay.jsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   PlusIcon, 
   XMarkIcon,
@@ -7,34 +7,23 @@ import {
   PhotoIcon,
   CloudArrowUpIcon,
   CheckCircleIcon,
-  ExclamationCircleIcon
+  ExclamationCircleIcon,
+  PencilIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
-import { createSentenceOfDay } from '../../service/api';
+import { 
+  getSentences,
+  createSentenceOfDay,
+  updateSentence,
+  deleteSentence
+} from '../../service/api';
 
 export default function WordOfTheDay() {
-  const [words, setWords] = useState([
-    {
-      id: 1,
-      title: 'Serendipity',
-      description: 'The occurrence and development of events by chance in a happy or beneficial way.',
-      image: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=400',
-      author: 'Pek van Andel',
-      date: '2026-08-05',
-      category: 'inspirational'
-    },
-    {
-      id: 2,
-      title: 'Resilience',
-      description: 'The capacity to recover quickly from difficulties; toughness.',
-      image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400',
-      author: 'Elizabeth Edwards',
-      date: '2026-08-06',
-      category: 'motivational'
-    }
-  ]);
-  
-  const [showModal, setShowModal] = useState(false);
+  const [words, setWords] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [success, setSuccess] = useState(null);
   const [error, setError] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
@@ -59,12 +48,48 @@ export default function WordOfTheDay() {
     image: null
   });
 
+  // Fetch sentences on component mount
+  useEffect(() => {
+    fetchSentences();
+  }, []);
+
+  // Fetch all sentences from API
+  const fetchSentences = async () => {
+    setFetchLoading(true);
+    setError(null);
+    try {
+      const response = await getSentences();
+      console.log('📚 Fetched Sentences:', response);
+      
+      if (response && response.status && response.data) {
+        setWords(response.data);
+      } else if (Array.isArray(response)) {
+        setWords(response);
+      } else {
+        setWords([]);
+      }
+    } catch (err) {
+      console.error('Error fetching sentences:', err);
+      setError('Failed to load sentences. Please refresh the page.');
+      setWords([]);
+    } finally {
+      setFetchLoading(false);
+    }
+  };
+
   const getCategoryColor = (category) => {
     const colors = {
       inspirational: 'bg-purple-100 text-purple-800',
       motivational: 'bg-blue-100 text-blue-800',
       educational: 'bg-green-100 text-green-800',
-      spiritual: 'bg-orange-100 text-orange-800'
+      spiritual: 'bg-orange-100 text-orange-800',
+      National: 'bg-red-100 text-red-800',
+      Festival: 'bg-orange-100 text-orange-800',
+      Birthday: 'bg-pink-100 text-pink-800',
+      Event: 'bg-purple-100 text-purple-800',
+      Holiday: 'bg-green-100 text-green-800',
+      Personal: 'bg-blue-100 text-blue-800',
+      Work: 'bg-indigo-100 text-indigo-800'
     };
     return colors[category] || 'bg-gray-100 text-gray-800';
   };
@@ -74,7 +99,14 @@ export default function WordOfTheDay() {
       inspirational: '💫',
       motivational: '💪',
       educational: '📚',
-      spiritual: '🕊️'
+      spiritual: '🕊️',
+      National: '🇮🇳',
+      Festival: '🎊',
+      Birthday: '🎂',
+      Event: '📅',
+      Holiday: '🌴',
+      Personal: '❤️',
+      Work: '💼'
     };
     return emojis[category] || '📌';
   };
@@ -138,13 +170,15 @@ export default function WordOfTheDay() {
       reader.onloadend = () => {
         setImagePreview(reader.result);
         setFormData({...formData, image: file});
-        setFormErrors({ ...formErrors, image: '' }); // Clear image error
+        setFormErrors({ ...formErrors, image: '' });
       };
       reader.readAsDataURL(file);
     }
   };
 
+  // Open Add Modal
   const handleAdd = () => {
+    setEditingItem(null);
     setFormData({
       title: '',
       description: '',
@@ -164,17 +198,66 @@ export default function WordOfTheDay() {
     });
     setSuccess(null);
     setError(null);
-    setLoading(false);
     setShowModal(true);
   };
 
-  // ✅ CREATE SENTENCE OF THE DAY - API CALL
+  // Open Edit Modal
+  const handleEdit = (item) => {
+    setEditingItem(item);
+    setFormData({
+      title: item.title || '',
+      description: item.description || '',
+      author: item.author || '',
+      date: item.date || '',
+      category: item.category || 'inspirational',
+      image: null
+    });
+    setImagePreview(item.image || '');
+    setFormErrors({
+      title: '',
+      description: '',
+      author: '',
+      date: '',
+      category: '',
+      image: ''
+    });
+    setSuccess(null);
+    setError(null);
+    setShowModal(true);
+  };
+
+  // Delete sentence
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this sentence?')) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await deleteSentence(id);
+      console.log('🗑️ Delete Response:', response);
+      
+      if (response && response.status) {
+        setSuccess('Sentence deleted successfully! 🗑️');
+        setWords(words.filter(word => word.id !== id));
+        setTimeout(() => setSuccess(null), 3000);
+      }
+    } catch (err) {
+      console.error('Error deleting sentence:', err);
+      setError(err.message || 'Failed to delete sentence');
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Submit form (Create or Update)
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Validate all fields
     if (!validateForm()) {
-      // Scroll to first error
       const firstError = document.querySelector('.border-red-500');
       if (firstError) {
         firstError.focus();
@@ -194,7 +277,7 @@ export default function WordOfTheDay() {
       submitData.append('category', formData.category);
       submitData.append('priority', 'Medium');
       
-      if (formData.image) {
+      if (formData.image && typeof formData.image !== 'string') {
         submitData.append('image', formData.image);
       }
 
@@ -202,66 +285,102 @@ export default function WordOfTheDay() {
         submitData.append('author', formData.author);
       }
 
-      console.log('📤 Submitting Word of Day:', {
-        title: formData.title,
-        description: formData.description,
-        author: formData.author,
-        date: formData.date,
-        category: formData.category
-      });
-
-      const response = await createSentenceOfDay(submitData);
-      console.log('✅ Response:', response);
+      let response;
       
-      if (response && response.status !== false) {
-        setSuccess(response.message || 'Sentence of the day created successfully! 🎉');
+      if (editingItem) {
+        // Update existing
+        console.log('📤 Updating:', { id: editingItem.id, ...formData });
+        response = await updateSentence(editingItem.id, submitData);
+        console.log('✅ Update Response:', response);
         
-        const newWord = {
-          id: response.data?.id || Date.now(),
-          title: response.data?.title || formData.title,
-          description: response.data?.description || formData.description,
-          image: response.data?.image || imagePreview || null,
-          author: response.data?.author || formData.author || null,
-          date: response.data?.date || formData.date,
-          category: formData.category
-        };
-        
-        setWords([newWord, ...words]);
-        
-        setTimeout(() => {
-          setShowModal(false);
-          setLoading(false);
-          setSuccess(null);
-          setImagePreview('');
-          setFormData({
-            title: '',
-            description: '',
-            author: '',
-            date: '',
-            category: 'inspirational',
-            image: null
-          });
-          setFormErrors({
-            title: '',
-            description: '',
-            author: '',
-            date: '',
-            category: '',
-            image: ''
-          });
-          if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-          }
-        }, 1500);
+        if (response && response.status) {
+          setSuccess(response.message || 'Sentence updated successfully! ✏️');
+          
+          const updatedWord = {
+            id: editingItem.id,
+            title: response.data?.title || formData.title,
+            description: response.data?.description || formData.description,
+            image: response.data?.image || imagePreview || null,
+            author: response.data?.author || formData.author || null,
+            date: response.data?.date || formData.date,
+            category: formData.category
+          };
+          
+          setWords(words.map(item => 
+            item.id === editingItem.id ? updatedWord : item
+          ));
+        }
       } else {
-        throw new Error(response?.message || 'Failed to create sentence of the day');
+        // Create new
+        console.log('📤 Creating:', formData);
+        response = await createSentenceOfDay(submitData);
+        console.log('✅ Create Response:', response);
+        
+        if (response && response.status) {
+          setSuccess(response.message || 'Sentence created successfully! 🎉');
+          
+          const newWord = {
+            id: response.data?.id || Date.now(),
+            title: response.data?.title || formData.title,
+            description: response.data?.description || formData.description,
+            image: response.data?.image || imagePreview || null,
+            author: response.data?.author || formData.author || null,
+            date: response.data?.date || formData.date,
+            category: formData.category
+          };
+          
+          setWords([newWord, ...words]);
+        }
       }
+      
+      // Close modal after success
+      setTimeout(() => {
+        setShowModal(false);
+        setLoading(false);
+        setSuccess(null);
+        setImagePreview('');
+        setEditingItem(null);
+        setFormData({
+          title: '',
+          description: '',
+          author: '',
+          date: '',
+          category: 'inspirational',
+          image: null
+        });
+        setFormErrors({
+          title: '',
+          description: '',
+          author: '',
+          date: '',
+          category: '',
+          image: ''
+        });
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }, 1500);
+      
     } catch (err) {
       console.error('❌ Error:', err);
-      setError(err.message || 'Failed to create sentence of the day. Please try again.');
+      setError(err.message || 'Failed to save sentence. Please try again.');
       setLoading(false);
     }
   };
+
+  // Loading state
+  if (fetchLoading) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-500">Loading sentences...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -379,6 +498,24 @@ export default function WordOfTheDay() {
                       <p className="text-xs text-gray-500 mt-2">✍️ {word.author}</p>
                     )}
                   </div>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => handleEdit(word)}
+                      className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition"
+                      title="Edit"
+                      disabled={loading}
+                    >
+                      <PencilIcon className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(word.id)}
+                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
+                      title="Delete"
+                      disabled={loading}
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-3 flex justify-between items-center text-xs border-t border-gray-100 pt-3">
@@ -393,19 +530,22 @@ export default function WordOfTheDay() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal - Add/Edit */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             {/* Modal Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">✨ Add Sentence of the Day</h2>
+              <h2 className="text-xl font-bold text-gray-900">
+                {editingItem ? '✏️ Edit Sentence' : '✨ Add Sentence of the Day'}
+              </h2>
               <button
                 onClick={() => {
                   setShowModal(false);
                   setError(null);
                   setSuccess(null);
                   setLoading(false);
+                  setEditingItem(null);
                   setFormErrors({
                     title: '',
                     description: '',
@@ -609,6 +749,13 @@ export default function WordOfTheDay() {
                   <option value="motivational">💪 Motivational</option>
                   <option value="educational">📚 Educational</option>
                   <option value="spiritual">🕊️ Spiritual</option>
+                  <option value="National">🇮🇳 National</option>
+                  <option value="Festival">🎊 Festival</option>
+                  <option value="Birthday">🎂 Birthday</option>
+                  <option value="Event">📅 Event</option>
+                  <option value="Holiday">🌴 Holiday</option>
+                  <option value="Personal">❤️ Personal</option>
+                  <option value="Work">💼 Work</option>
                 </select>
                 {formErrors.category && (
                   <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
@@ -632,6 +779,7 @@ export default function WordOfTheDay() {
                     setError(null);
                     setSuccess(null);
                     setLoading(false);
+                    setEditingItem(null);
                     setFormErrors({
                       title: '',
                       description: '',
@@ -654,10 +802,10 @@ export default function WordOfTheDay() {
                   {loading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Creating...
+                      {editingItem ? 'Updating...' : 'Creating...'}
                     </>
                   ) : (
-                    'Create Sentence'
+                    editingItem ? 'Update Sentence' : 'Create Sentence'
                   )}
                 </button>
               </div>

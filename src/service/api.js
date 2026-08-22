@@ -133,6 +133,44 @@ export const deleteSpecialDay = async (id) => {
 };
 
 
+
+// src/service/api.js - Add these functions with existing ones
+
+// =============================================
+// ===== SENTENCE OF DAY APIs =====
+// =============================================
+
+/**
+ * Get all sentences
+ * GET /admin-sentence-of-day/
+ */
+export const getSentences = async () => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.get(
+      `${API_URL}/admin-sentence-of-day/`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Get Sentences:', error);
+    const errorMsg = error.response?.data?.message || 
+                     error.response?.data?.error || 
+                     'Failed to fetch sentences';
+    throw new Error(errorMsg);
+  }
+};
+
+/**
+ * Create a sentence
+ * POST /create-sentence-of-day/
+ */
 export const createSentenceOfDay = async (formData) => {
   try {
     const token = localStorage.getItem('accessToken');
@@ -149,10 +187,69 @@ export const createSentenceOfDay = async (formData) => {
     
     return response.data;
   } catch (error) {
-    console.error('API Error:', error);
-    throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to create sentence of day');
+    console.error('API Error - Create Sentence:', error);
+    const errorMsg = error.response?.data?.message || 
+                     error.response?.data?.error || 
+                     'Failed to create sentence';
+    throw new Error(errorMsg);
   }
 };
+
+/**
+ * Update a sentence
+ * PUT /admin-sentence-of-day/{id}/
+ */
+export const updateSentence = async (id, formData) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.put(
+      `${API_URL}/admin-sentence-of-day/${id}/`,
+      formData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Update Sentence:', error);
+    const errorMsg = error.response?.data?.message || 
+                     error.response?.data?.error || 
+                     'Failed to update sentence';
+    throw new Error(errorMsg);
+  }
+};
+
+/**
+ * Delete a sentence
+ * DELETE /admin-sentence-of-day/{id}/delete/
+ */
+export const deleteSentence = async (id) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.delete(
+      `${API_URL}/admin-sentence-of-day/${id}/delete/`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Delete Sentence:', error);
+    const errorMsg = error.response?.data?.message || 
+                     error.response?.data?.error || 
+                     'Failed to delete sentence';
+    throw new Error(errorMsg);
+  }
+};
+
 
 // Get top students
 export const getTopStudents = async () => {
