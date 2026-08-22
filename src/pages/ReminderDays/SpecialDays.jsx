@@ -1,5 +1,5 @@
 // src/pages/ReminderDays/SpecialDays.jsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   PlusIcon, 
   XMarkIcon,
@@ -7,41 +7,38 @@ import {
   CloudArrowUpIcon,
   CalendarIcon,
   CheckCircleIcon,
-  ExclamationCircleIcon
+  ExclamationCircleIcon,
+  PencilIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
-import { createSpecialDay } from '../../service/api';
+import { 
+  getSpecialDays, 
+  createSpecialDay, 
+  updateSpecialDay, 
+  deleteSpecialDay 
+} from '../../service/api';
 
 export default function SpecialDays() {
-  // State Management
-  const [specialDays, setSpecialDays] = useState([
-    {
-      id: 1,
-      title: 'Independence Day',
-      description: 'Happy Independence Day',
-      date: '2026-08-15',
-      category: 'National',
-      priority: 'High',
-      image: 'https://images.unsplash.com/photo-1532375810709-75b1da00537c?w=400'
-    },
-    {
-      id: 2,
-      title: 'Diwali Festival',
-      description: 'Festival of Lights',
-      date: '2026-11-12',
-      category: 'Festival',
-      priority: 'Medium',
-      image: 'https://images.unsplash.com/photo-1577083552431-6e5fd01988ec?w=400'
-    }
-  ]);
-  
-  const [showModal, setShowModal] = useState(false);
+  const [specialDays, setSpecialDays] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [success, setSuccess] = useState(null);
   const [error, setError] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const fileInputRef = useRef(null);
   
-  // Form Data
+  // Form validation errors
+  const [formErrors, setFormErrors] = useState({
+    title: '',
+    description: '',
+    date: '',
+    category: '',
+    priority: '',
+    image: ''
+  });
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -51,7 +48,35 @@ export default function SpecialDays() {
     image: null
   });
 
-  // Helper Functions
+  // Fetch special days on component mount
+  useEffect(() => {
+    fetchSpecialDays();
+  }, []);
+
+  // Fetch all special days from API
+  const fetchSpecialDays = async () => {
+    setFetchLoading(true);
+    setError(null);
+    try {
+      const response = await getSpecialDays();
+      console.log('📚 Fetched Special Days:', response);
+      
+      if (response && response.status && response.data) {
+        setSpecialDays(response.data);
+      } else if (Array.isArray(response)) {
+        setSpecialDays(response);
+      } else {
+        setSpecialDays([]);
+      }
+    } catch (err) {
+      console.error('Error fetching special days:', err);
+      setError('Failed to load special days. Please refresh the page.');
+      setSpecialDays([]);
+    } finally {
+      setFetchLoading(false);
+    }
+  };
+
   const getCategoryColor = (category) => {
     const colors = {
       National: 'bg-red-100 text-red-800',
@@ -109,7 +134,57 @@ export default function SpecialDays() {
     return `${diffDays} days left`;
   };
 
-  // Form Handlers
+  // Validate form
+  const validateForm = () => {
+    const errors = {
+      title: '',
+      description: '',
+      date: '',
+      category: '',
+      priority: '',
+      image: ''
+    };
+    let isValid = true;
+
+    if (!formData.title || formData.title.trim() === '') {
+      errors.title = 'Title is required';
+      isValid = false;
+    }
+
+    if (!formData.description || formData.description.trim() === '') {
+      errors.description = 'Description is required';
+      isValid = false;
+    }
+
+    if (!formData.date) {
+      errors.date = 'Date is required';
+      isValid = false;
+    }
+
+    if (!formData.category) {
+      errors.category = 'Category is required';
+      isValid = false;
+    }
+
+    if (!formData.priority) {
+      errors.priority = 'Priority is required';
+      isValid = false;
+    }
+
+    if (!formData.image && !imagePreview) {
+      errors.image = 'Image is required';
+      isValid = false;
+    }
+
+    setFormErrors(errors);
+    return isValid;
+  };
+
+  // Clear a specific error when user starts typing
+  const clearFieldError = (field) => {
+    setFormErrors({ ...formErrors, [field]: '' });
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -117,12 +192,15 @@ export default function SpecialDays() {
       reader.onloadend = () => {
         setImagePreview(reader.result);
         setFormData({...formData, image: file});
+        setFormErrors({ ...formErrors, image: '' });
       };
       reader.readAsDataURL(file);
     }
   };
 
+  // Open Add Modal
   const handleAdd = () => {
+    setEditingItem(null);
     setFormData({
       title: '',
       description: '',
@@ -132,13 +210,84 @@ export default function SpecialDays() {
       image: null
     });
     setImagePreview('');
+    setFormErrors({
+      title: '',
+      description: '',
+      date: '',
+      category: '',
+      priority: '',
+      image: ''
+    });
     setSuccess(null);
     setError(null);
     setShowModal(true);
   };
 
+  // Open Edit Modal
+  const handleEdit = (item) => {
+    setEditingItem(item);
+    setFormData({
+      title: item.title || '',
+      description: item.description || '',
+      date: item.date || '',
+      category: item.category || 'National',
+      priority: item.priority || 'Medium',
+      image: null
+    });
+    setImagePreview(item.image || '');
+    setFormErrors({
+      title: '',
+      description: '',
+      date: '',
+      category: '',
+      priority: '',
+      image: ''
+    });
+    setSuccess(null);
+    setError(null);
+    setShowModal(true);
+  };
+
+  // Delete special day
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this special day?')) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await deleteSpecialDay(id);
+      console.log('🗑️ Delete Response:', response);
+      
+      if (response && response.status) {
+        setSuccess('Special day deleted successfully! 🗑️');
+        // Remove from list
+        setSpecialDays(specialDays.filter(day => day.id !== id));
+        setTimeout(() => setSuccess(null), 3000);
+      }
+    } catch (err) {
+      console.error('Error deleting special day:', err);
+      setError(err.message || 'Failed to delete special day');
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Submit form (Create or Update)
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate all fields
+    if (!validateForm()) {
+      const firstError = document.querySelector('.border-red-500');
+      if (firstError) {
+        firstError.focus();
+      }
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -150,57 +299,110 @@ export default function SpecialDays() {
       submitData.append('date', formData.date);
       submitData.append('category', formData.category);
       submitData.append('priority', formData.priority);
-      if (formData.image) {
+      if (formData.image && typeof formData.image !== 'string') {
         submitData.append('image', formData.image);
       }
 
-      const response = await createSpecialDay(submitData);
+      let response;
       
-      if (response.status) {
-        setSuccess(response.message || 'Special day created successfully! 🎉');
+      if (editingItem) {
+        // Update existing
+        console.log('📤 Updating:', { id: editingItem.id, ...formData });
+        response = await updateSpecialDay(editingItem.id, submitData);
+        console.log('✅ Update Response:', response);
         
-        // Add new day to list
-        const newDay = {
-          id: response.data?.id || Date.now(),
-          title: response.data?.title || formData.title,
-          description: response.data?.description || formData.description,
-          date: response.data?.date || formData.date,
-          category: formData.category,
-          priority: formData.priority,
-          image: response.data?.image || imagePreview || null
-        };
+        if (response && response.status) {
+          setSuccess(response.message || 'Special day updated successfully! ✏️');
+          
+          // Update in list
+          const updatedDay = {
+            id: editingItem.id,
+            title: response.data?.title || formData.title,
+            description: response.data?.description || formData.description,
+            date: response.data?.date || formData.date,
+            category: formData.category,
+            priority: formData.priority,
+            image: response.data?.image || imagePreview || null
+          };
+          
+          setSpecialDays(specialDays.map(item => 
+            item.id === editingItem.id ? updatedDay : item
+          ));
+        }
+      } else {
+        // Create new
+        console.log('📤 Creating:', formData);
+        response = await createSpecialDay(submitData);
+        console.log('✅ Create Response:', response);
         
-        setSpecialDays([newDay, ...specialDays]);
-        
-        // Close modal after success
-        setTimeout(() => {
-          setShowModal(false);
-          setSuccess(null);
-          setImagePreview('');
-          setFormData({
-            title: '',
-            description: '',
-            date: '',
-            category: 'National',
-            priority: 'Medium',
-            image: null
-          });
-          // Reset file input
-          if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-          }
-        }, 1500);
+        if (response && response.status) {
+          setSuccess(response.message || 'Special day created successfully! 🎉');
+          
+          const newDay = {
+            id: response.data?.id || Date.now(),
+            title: response.data?.title || formData.title,
+            description: response.data?.description || formData.description,
+            date: response.data?.date || formData.date,
+            category: formData.category,
+            priority: formData.priority,
+            image: response.data?.image || imagePreview || null
+          };
+          
+          setSpecialDays([newDay, ...specialDays]);
+        }
       }
+      
+      // Close modal after success
+      setTimeout(() => {
+        setShowModal(false);
+        setLoading(false);
+        setSuccess(null);
+        setImagePreview('');
+        setEditingItem(null);
+        setFormData({
+          title: '',
+          description: '',
+          date: '',
+          category: 'National',
+          priority: 'Medium',
+          image: null
+        });
+        setFormErrors({
+          title: '',
+          description: '',
+          date: '',
+          category: '',
+          priority: '',
+          image: ''
+        });
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }, 1500);
+      
     } catch (err) {
-      setError(err.message || 'Failed to create special day. Please try again.');
-    } finally {
+      console.error('❌ Error:', err);
+      setError(err.message || 'Failed to save special day. Please try again.');
       setLoading(false);
     }
   };
 
+  // Loading state
+  if (fetchLoading) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-500">Loading special days...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">✨ Special Days</h1>
@@ -215,7 +417,6 @@ export default function SpecialDays() {
         </button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-lg p-4 border border-gray-200">
           <p className="text-sm text-gray-500">Total Days</p>
@@ -241,7 +442,6 @@ export default function SpecialDays() {
         </div>
       </div>
 
-      {/* Success/Error Messages */}
       {success && (
         <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
           <CheckCircleIcon className="w-5 h-5 text-green-600 flex-shrink-0" />
@@ -255,7 +455,6 @@ export default function SpecialDays() {
         </div>
       )}
 
-      {/* Cards Grid */}
       {specialDays.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
           <CalendarIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -276,7 +475,6 @@ export default function SpecialDays() {
               key={day.id} 
               className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1"
             >
-              {/* Image */}
               <div className="relative h-48 overflow-hidden bg-gray-100">
                 {day.image ? (
                   <img 
@@ -304,12 +502,29 @@ export default function SpecialDays() {
                 </div>
               </div>
 
-              {/* Content */}
               <div className="p-4">
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-gray-900 truncate">{day.title}</h3>
                     <p className="text-sm text-gray-600 mt-1 line-clamp-2">{day.description}</p>
+                  </div>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => handleEdit(day)}
+                      className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                      title="Edit"
+                      disabled={loading}
+                    >
+                      <PencilIcon className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(day.id)}
+                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
+                      title="Delete"
+                      disabled={loading}
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
 
@@ -325,18 +540,29 @@ export default function SpecialDays() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal - Add/Edit */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            {/* Modal Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">✨ Add Special Day</h2>
+              <h2 className="text-xl font-bold text-gray-900">
+                {editingItem ? '✏️ Edit Special Day' : '✨ Add Special Day'}
+              </h2>
               <button
                 onClick={() => {
                   setShowModal(false);
                   setError(null);
                   setSuccess(null);
+                  setLoading(false);
+                  setEditingItem(null);
+                  setFormErrors({
+                    title: '',
+                    description: '',
+                    date: '',
+                    category: '',
+                    priority: '',
+                    image: ''
+                  });
                 }}
                 className="p-2 hover:bg-gray-100 rounded-lg transition"
                 disabled={loading}
@@ -345,7 +571,6 @@ export default function SpecialDays() {
               </button>
             </div>
 
-            {/* Modal Body */}
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
               {/* Title */}
               <div>
@@ -355,27 +580,50 @@ export default function SpecialDays() {
                 <input
                   type="text"
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  onChange={(e) => {
+                    setFormData({ ...formData, title: e.target.value });
+                    clearFieldError('title');
+                  }}
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                    formErrors.title ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="Enter title"
                   required
                   disabled={loading}
                 />
+                {formErrors.title && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <ExclamationCircleIcon className="w-4 h-4" />
+                    {formErrors.title}
+                  </p>
+                )}
               </div>
 
               {/* Description */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Description
+                  Description <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   rows="3"
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  onChange={(e) => {
+                    setFormData({ ...formData, description: e.target.value });
+                    clearFieldError('description');
+                  }}
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                    formErrors.description ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="Enter description or wishes"
+                  required
                   disabled={loading}
                 />
+                {formErrors.description && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <ExclamationCircleIcon className="w-4 h-4" />
+                    {formErrors.description}
+                  </p>
+                )}
               </div>
 
               {/* Date */}
@@ -386,20 +634,33 @@ export default function SpecialDays() {
                 <input
                   type="date"
                   value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  onChange={(e) => {
+                    setFormData({ ...formData, date: e.target.value });
+                    clearFieldError('date');
+                  }}
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                    formErrors.date ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   required
                   disabled={loading}
                 />
+                {formErrors.date && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <ExclamationCircleIcon className="w-4 h-4" />
+                    {formErrors.date}
+                  </p>
+                )}
               </div>
 
-              {/* Image Upload */}
+              {/* Image */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Image
+                  Image <span className="text-red-500">*</span>
                 </label>
                 <div
-                  className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition cursor-pointer"
+                  className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-blue-500 transition cursor-pointer ${
+                    formErrors.image ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   onClick={() => !loading && fileInputRef.current?.click()}
                 >
                   <input
@@ -423,6 +684,7 @@ export default function SpecialDays() {
                           e.stopPropagation();
                           setImagePreview('');
                           setFormData({ ...formData, image: null });
+                          setFormErrors({ ...formErrors, image: '' });
                           if (fileInputRef.current) fileInputRef.current.value = '';
                         }}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition"
@@ -439,19 +701,31 @@ export default function SpecialDays() {
                     </div>
                   )}
                 </div>
+                {formErrors.image && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <ExclamationCircleIcon className="w-4 h-4" />
+                    {formErrors.image}
+                  </p>
+                )}
               </div>
 
               {/* Category & Priority */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Category
+                    Category <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    onChange={(e) => {
+                      setFormData({ ...formData, category: e.target.value });
+                      clearFieldError('category');
+                    }}
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                      formErrors.category ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     disabled={loading}
+                    required
                   >
                     <option value="National">🇮🇳 National</option>
                     <option value="Festival">🎊 Festival</option>
@@ -461,25 +735,47 @@ export default function SpecialDays() {
                     <option value="Personal">❤️ Personal</option>
                     <option value="Work">💼 Work</option>
                   </select>
+                  {formErrors.category && (
+                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                      <ExclamationCircleIcon className="w-4 h-4" />
+                      {formErrors.category}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Priority
+                    Priority <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    onChange={(e) => {
+                      setFormData({ ...formData, priority: e.target.value });
+                      clearFieldError('priority');
+                    }}
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                      formErrors.priority ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     disabled={loading}
+                    required
                   >
                     <option value="High">🔴 High</option>
                     <option value="Medium">🟡 Medium</option>
                     <option value="Low">🟢 Low</option>
                   </select>
+                  {formErrors.priority && (
+                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                      <ExclamationCircleIcon className="w-4 h-4" />
+                      {formErrors.priority}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              {/* Actions */}
+              {/* Required Fields Note */}
+              <div className="text-sm text-gray-500 flex items-center gap-1">
+                <span className="text-red-500">*</span> All fields are required
+              </div>
+
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                 <button
                   type="button"
@@ -487,6 +783,16 @@ export default function SpecialDays() {
                     setShowModal(false);
                     setError(null);
                     setSuccess(null);
+                    setLoading(false);
+                    setEditingItem(null);
+                    setFormErrors({
+                      title: '',
+                      description: '',
+                      date: '',
+                      category: '',
+                      priority: '',
+                      image: ''
+                    });
                   }}
                   className="px-6 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition"
                   disabled={loading}
@@ -501,10 +807,10 @@ export default function SpecialDays() {
                   {loading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Creating...
+                      {editingItem ? 'Updating...' : 'Creating...'}
                     </>
                   ) : (
-                    'Create Special Day'
+                    editingItem ? 'Update Special Day' : 'Create Special Day'
                   )}
                 </button>
               </div>

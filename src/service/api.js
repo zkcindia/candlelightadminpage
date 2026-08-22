@@ -16,33 +16,123 @@ export const loginUser = async (email, password) => {
   }
 };
 
-// Create a special day - Simple and clean
-export const createSpecialDay = async (formData) => {
+// src/service/api.js - Add these functions with existing ones
+
+// =============================================
+// ===== SPECIAL DAYS API =====
+// =============================================
+
+/**
+ * Get all special days
+ * GET /admin-special-day-messages/
+ */
+export const getSpecialDays = async () => {
   try {
-    const response = await fetch(`${API_URL}/create-special-day/`, {
-      method: 'POST',
-      body: formData,
-    });
+    const token = localStorage.getItem('accessToken');
     
-    const data = await response.json();
+    const response = await axios.get(
+      `${API_URL}/admin-special-day-messages/`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
     
-    if (!response.ok) {
-      throw new Error(data.message || 'Failed to create special day');
-    }
-    
-    return data;
+    return response.data;
   } catch (error) {
-    console.error('Error creating special day:', error);
-    throw error;
+    console.error('API Error - Get Special Days:', error);
+    const errorMsg = error.response?.data?.message || 
+                     error.response?.data?.error || 
+                     'Failed to fetch special days';
+    throw new Error(errorMsg);
   }
 };
 
-export default {
-  createSpecialDay
+/**
+ * Create a special day
+ * POST /create-special-day/
+ */
+export const createSpecialDay = async (formData) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.post(
+      `${API_URL}/create-special-day/`,
+      formData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Create Special Day:', error);
+    const errorMsg = error.response?.data?.message || 
+                     error.response?.data?.error || 
+                     'Failed to create special day';
+    throw new Error(errorMsg);
+  }
+};
+
+/**
+ * Update a special day
+ * PUT /admin-special-day-messages/{id}/
+ */
+export const updateSpecialDay = async (id, formData) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.put(
+      `${API_URL}/admin-special-day-messages/${id}/`,
+      formData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Update Special Day:', error);
+    const errorMsg = error.response?.data?.message || 
+                     error.response?.data?.error || 
+                     'Failed to update special day';
+    throw new Error(errorMsg);
+  }
+};
+
+/**
+ * Delete a special day
+ * DELETE /admin-special-day-messages/{id}/delete/
+ */
+export const deleteSpecialDay = async (id) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.delete(
+      `${API_URL}/admin-special-day-messages/${id}/delete/`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('API Error - Delete Special Day:', error);
+    const errorMsg = error.response?.data?.message || 
+                     error.response?.data?.error || 
+                     'Failed to delete special day';
+    throw new Error(errorMsg);
+  }
 };
 
 
-// ===== SENTENCE OF THE DAY API =====
 export const createSentenceOfDay = async (formData) => {
   try {
     const token = localStorage.getItem('accessToken');
@@ -53,7 +143,6 @@ export const createSentenceOfDay = async (formData) => {
       {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
         },
       }
     );
